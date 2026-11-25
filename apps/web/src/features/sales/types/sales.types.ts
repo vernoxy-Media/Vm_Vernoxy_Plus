@@ -492,11 +492,55 @@ export interface ColumnMatchItem {
   status: 'matched' | 'unmatched' | 'not_importable';
 }
 
+/** One problem on an extra sheet of a multi-sheet file (Contacts, Leads, Interactions, Follow-ups, Won, Notes). */
+export interface ImportExtraIssue {
+  sheet: string;
+  row: number;
+  company_key: string | null;
+  field: string;
+  message: string;
+  severity: 'error' | 'warning';
+}
+
+/** One company of the file in the preview table. */
+export interface ImportPreviewRow {
+  row: number;
+  company_key: string | null;
+  company: string;
+  city: string | null;
+  status: 'ready' | 'existing' | 'error';
+  problems: string[];
+  warnings: string[];
+  includes: { contacts: number; interactions: number; follow_ups: number; notes: number; client: boolean; lead_status: string | null };
+  /** File column key -> value. */
+  cells: Record<string, string>;
+}
+
+export interface ImportPreviewEdits {
+  excluded_rows: number[];
+  /** row number -> (file column key -> corrected value) */
+  overrides: Record<string, Record<string, string>>;
+}
+
 export interface ImportCheckResponse {
   job_id: string;
   summary: { total: number; ready: number; already_in_database: number; with_errors: number };
-  will_create: { companies: number; leads: number };
+  will_create: {
+    companies: number;
+    leads: number;
+    contacts?: number;
+    interactions?: number;
+    follow_ups?: number;
+    notes?: number;
+    clients?: number;
+  };
   will_fill: number;
+  sheets?: Array<{ name: string; rows: number }>;
+  extra_issues?: ImportExtraIssue[];
+  extra_issues_truncated?: boolean;
+  preview?: ImportPreviewRow[];
+  preview_truncated?: boolean;
+  edits?: ImportPreviewEdits;
   errors: Array<{ row: number; company: string | null; field: string; problem: string }>;
   errors_truncated: boolean;
   existing: Array<{
@@ -524,6 +568,7 @@ export interface ImportConfirmResponse {
   companies_created: number;
   companies_updated: number;
   leads_created: number;
+  history?: { contacts: number; interactions: number; follow_ups: number; notes: number; clients: number };
   skipped_existing: number;
   rows_with_errors: number;
   rows_failed: number;

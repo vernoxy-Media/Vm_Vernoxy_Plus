@@ -23,6 +23,17 @@ import {
   UpdatedRow,
 } from '../ports/sales-import.repository.port';
 import { SalesImportTemplatePort } from '../ports/sales-import-template.port';
+import { SalesImportHistoryRepositoryPort } from '../ports/sales-import-history.repository.port';
+import {
+  CompanyPlan,
+  HISTORY_SHEETS,
+  HistoryIssue,
+  HistorySheet,
+  RawSheets,
+  SHEET_TITLE,
+  buildHistory,
+  cellReader,
+} from '../../domain/services/import-history.service';
 import {
   FieldError,
   FieldValidationError,
@@ -65,19 +76,83 @@ export interface ImportOptions {
 const DEFAULT_OPTIONS: ImportOptions = { create_leads: true, existing_rows: 'skip' };
 
 export const SALES_IMPORT_ENTITY = 'sales_import';
-const PREVIEW_VALID_MS = 24 * 60 * 60 * 1000;
+export const PREVIEW_VALID_MS = 24 * 60 * 60 * 1000;
 const CHUNK = 250;
 const MAX_ISSUES_STORED = 500;
-const MAX_ROWS_RETURNED = 200;
+export const MAX_ROWS_RETURNED = 200;
 
-interface RawRow {
+export interface RawRow {
   rowNumber: number;
   cells: Record<string, string>;
 }
 
+/** The Companies rows plus the optional extra sheets of a multi-sheet file (Contacts, Leads, Interactions, ...). */
+interface ParsedFile {
+  rows: RawRow[];
+  columns: FileColumn[];
+  extra: RawSheets;
+}
+
+/** What the user chose in the preview: companies to leave out, and cell values corrected before importing. */
+export interface PreviewEdits {
+  excluded_rows: number[];
+  /** row number -> (file column key -> corrected value) */
+  overrides: Record<string, Record<string, string>>;
+}
+export const NO_EDITS: PreviewEdits = { excluded_rows: [], overrides: {} };
+
+/** Keeps only row numbers and column keys that exist in the file, and text values. */
+export function cleanPreviewEdits(excluded: number[] | undefined, overrides: PreviewEdits['overrides'] | undefined, rows: RawRow[], columns: FileColumn[]): PreviewEdits {
+  const known = new Set(rows.map((r) => r.rowNumber));
+  const cols = new Set(columns.map((c) => c.key));
+  const out: PreviewEdits = { excluded_rows: [...new Set((excluded ?? []).filter((n) => known.has(n)))], overrides: {} };
+  for (const [row, cells] of Object.entries(overrides ?? {})) {
+    if (!known.has(Number(row))) continue;
+    const kept: Record<string, string> = {};
+    for (const [col, v] of Object.entries(cells ?? {})) if (cols.has(col) && typeof v === 'string') kept[col] = v.trim().slice(0, 2000);
+    if (Object.keys(kept).length > 0) out.overrides[row] = kept;
+  }
+  return out;
+}
+export interface SheetData {
+  name: string;
+  headers: Array<{ key: string; header: string; width: number }>;
+  data: Array<Record<string, unknown>>;
+}
+const MAX_EXTRA_SHEET_ROWS = 10_000;
+
+export interface PreviewRow {
+  row: number;
+  company_key: string | null;
+  company: string;
+  city: string | null;
+  status: 'ready' | 'existing' | 'error';
+  problems: string[];
+  warnings: string[];
+  /** Contacts, conversations, follow-ups, notes (and client) coming with this company from the extra sheets. */
+  includes: { contacts: number; interactions: number; follow_ups: number; notes: number; client: boolean; lead_status: string | null };
+  /** File column key -> value, so a value can be corrected in the preview. */
+  cells: Record<string, string>;
+}
+
+export interface HistoryTotals {
+  contacts: number;
+  interactions: number;
+  follow_ups: number;
+  notes: number;
+  clients: number;
+}
+const emptyTotals = (): HistoryTotals => ({ contacts: 0, interactions: 0, follow_ups: 0, notes: 0, clients: 0 });
+
 export interface RowOutcome {
   row_number: number;
   company_name: string;
+  /** The Company Key of the row (multi-sheet files), or null. */
+  company_key?: string | null;
+  /** What the extra sheets say about this company, when the file has any. */
+  plan?: CompanyPlan | null;
+  /** The cells of the row as checked (after preview corrections), for the preview table. */
+  cells?: Record<string, string>;
   status: 'ready' | 'existing' | 'error';
   errors: FieldError[];
   warnings: string[];
@@ -91,8 +166,17 @@ export interface CheckResult {
   job_id: string;
   summary: { total: number; ready: number; already_in_database: number; with_errors: number };
   /** Companies that will be created and how many of them also get a lead. */
-  will_create: { companies: number; leads: number };
+  will_create: { companies: number; leads: number } & HistoryTotals;
   will_fill: number;
+  /** Multi-sheet files: rows read per sheet, and every problem found on the extra sheets. */
+  sheets: Array<{ name: string; rows: number }>;
+  extra_issues: HistoryIssue[];
+  extra_issues_truncated: boolean;
+  /** The companies of the file for the preview table: rows with problems first, at most 200. */
+  preview: PreviewRow[];
+  preview_truncated: boolean;
+  /** Companies the user left out of this import, and the cell corrections made in the preview. */
+  edits: PreviewEdits;
   errors: Array<{ row: number; company: string | null; field: string; problem: string }>;
   errors_truncated: boolean;
   existing: Array<{ row: number; company: string; matched_company_id: number; matched_company_code: string | null; matched_by: string }>;
@@ -114,6 +198,8 @@ export interface ImportResult {
   companies_created: number;
   companies_updated: number;
   leads_created: number;
+  /** Contacts, conversations, follow-ups, notes and clients saved from the extra sheets. */
+  history: HistoryTotals;
   skipped_existing: number;
   rows_with_errors: number;
   rows_failed: number;
@@ -121,7 +207,7 @@ export interface ImportResult {
   row_results: Array<{ row: number; company: string; status: 'created' | 'updated' | 'skipped' | 'error' | 'failed'; company_code?: string | null; lead_code?: string | null; message?: string }>;
 }
 
-const streamToBuffer = async (s: NodeJS.ReadableStream): Promise<Buffer> => {
+export const streamToBuffer = async (s: NodeJS.ReadableStream): Promise<Buffer> => {
   const chunks: Buffer[] = [];
   for await (const c of s) chunks.push(Buffer.isBuffer(c) ? c : Buffer.from(c as string));
   return Buffer.concat(chunks);
@@ -138,6 +224,8 @@ export class ImportUseCases {
     private readonly readers: { xlsx: SpreadsheetReaderPort; csv: SpreadsheetReaderPort },
     private readonly writers: { xlsx: SpreadsheetWriterPort; csv: SpreadsheetWriterPort },
     private readonly notifier: SalesNotifierPort,
+    /** Saves the extra sheets of a multi-sheet file. Without it only the Companies sheet is imported, as before. */
+    private readonly historyRepo?: SalesImportHistoryRepositoryPort,
   ) {}
 
   // ------------------------------------------------------------- template ----
@@ -160,7 +248,7 @@ export class ImportUseCases {
       throw new FileProblemError('The file is bigger than 5 MB. Split it into smaller files.', 'FILE_TOO_LARGE', 413);
     }
     const format = this.detectFormat(file, originalFilename);
-    const { rows, columns } = await this.parse(file, format);
+    const { rows, columns, extra } = await this.parse(file, format);
     if (rows.length === 0) throw new FileProblemError('The file has no rows to import.', 'FILE_NO_ROWS', 422);
     if (rows.length > IMPORT_MAX_ROWS) {
       throw new FileProblemError(`The file has ${rows.length} rows. An import can have up to ${IMPORT_MAX_ROWS.toLocaleString('en-US')} rows.`, 'TOO_MANY_ROWS', 422);
@@ -188,7 +276,7 @@ export class ImportUseCases {
       }),
     );
 
-    const check = await this.runCheck(job, rows, toMapping(matches), DEFAULT_OPTIONS);
+    const check = await this.runCheck(job, rows, toMapping(matches), DEFAULT_OPTIONS, extra, NO_EDITS);
     return {
       ...check,
       file: { name: safeName, rows: rows.length, format },
@@ -202,11 +290,11 @@ export class ImportUseCases {
   /** Step 3 "Check and import": every row is checked with the same rules as the Add Company form. */
   async check(
     jobId: string,
-    input: { mapping?: ColumnMapping; create_leads?: boolean; existing_rows?: ExistingRowsPolicy },
+    input: { mapping?: ColumnMapping; create_leads?: boolean; existing_rows?: ExistingRowsPolicy; excluded_rows?: number[]; overrides?: PreviewEdits['overrides'] },
     actor: SalesActor,
   ): Promise<CheckResult> {
     const job = await this.openJob(jobId, actor);
-    const { rows, columns } = await this.loadRows(job);
+    const { rows, columns, extra } = await this.loadRows(job);
     const mapping = input.mapping ?? (job.options.mapping as ColumnMapping);
     const errors = validateMapping(mapping, columns);
     if (errors.length > 0) throw new FieldValidationError(errors);
@@ -214,7 +302,13 @@ export class ImportUseCases {
       create_leads: input.create_leads ?? (job.options.create_leads as boolean) ?? DEFAULT_OPTIONS.create_leads,
       existing_rows: input.existing_rows ?? (job.options.existing_rows as ExistingRowsPolicy) ?? DEFAULT_OPTIONS.existing_rows,
     };
-    return this.runCheck(job, rows, mapping, options);
+    const edits = this.cleanEdits(input.excluded_rows ?? (job.options.excluded_rows as number[] | undefined), input.overrides ?? (job.options.overrides as PreviewEdits['overrides'] | undefined), rows, columns);
+    return this.runCheck(job, rows, mapping, options, extra, edits);
+  }
+
+  /** Keeps only row numbers and column keys that exist in the file, and text values. */
+  private cleanEdits(excluded: number[] | undefined, overrides: PreviewEdits['overrides'] | undefined, rows: RawRow[], columns: FileColumn[]): PreviewEdits {
+    return cleanPreviewEdits(excluded, overrides, rows, columns);
   }
 
   // -------------------------------------------------------------- confirm ----
@@ -226,15 +320,16 @@ export class ImportUseCases {
    */
   async confirm(jobId: string, actor: SalesActor, now = new Date()): Promise<ImportResult> {
     const job = await this.openJob(jobId, actor);
-    const { rows } = await this.loadRows(job);
+    const { rows, extra, columns } = await this.loadRows(job);
     const mapping = job.options.mapping as ColumnMapping;
     const options: ImportOptions = {
       create_leads: (job.options.create_leads as boolean) ?? DEFAULT_OPTIONS.create_leads,
       existing_rows: (job.options.existing_rows as ExistingRowsPolicy) ?? DEFAULT_OPTIONS.existing_rows,
     };
+    const edits = this.cleanEdits(job.options.excluded_rows as number[] | undefined, job.options.overrides as PreviewEdits['overrides'] | undefined, rows, columns);
 
     // Checked again right now: someone may have added a company since the last check.
-    const outcomes = await this.analyze(rows, mapping, options);
+    const outcomes = (await this.analyze(rows, mapping, options, extra, edits)).outcomes;
     const ready = outcomes.filter((o) => o.status === 'ready');
     const existing = outcomes.filter((o) => o.status === 'existing');
     const toFill = options.existing_rows === 'update_empty' ? existing : [];
@@ -258,18 +353,39 @@ export class ImportUseCases {
     let created = 0;
     let leads = 0;
     let failed = 0;
+    const totals = emptyTotals();
 
     for (let i = 0; i < ready.length; i += CHUNK) {
       const slice = ready.slice(i, i + CHUNK);
       const commitRows = slice.map((o) => o.commit as ImportCommitRow);
       const saved = await this.commit(batchId, commitRows, lookups, actor, results, slice);
-      created += saved.length;
-      leads += saved.filter((s) => s.lead_id !== null).length;
+      failed += slice.length - saved.length;
       for (const s of saved) {
         const o = slice.find((x) => x.row_number === s.row_number)!;
-        results.push({ row: s.row_number, company: o.company_name, status: 'created', company_code: s.company_code, lead_code: s.lead_code });
+        let note: string | undefined;
+        if (o.plan && this.historyRepo) {
+          // The extra sheets of this company, all or nothing; if they cannot be saved the company is removed again.
+          try {
+            if (o.plan.lead && s.lead_id === null) throw new Error('The lead of this company could not be created.');
+            const c = await this.historyRepo.commitCompany({ batch_id: batchId, actor_emp_id: actor.emp_id, company_id: s.company_id, lead_id: s.lead_id, plan: o.plan });
+            totals.contacts += c.contacts;
+            totals.interactions += c.interactions;
+            totals.follow_ups += c.follow_ups;
+            totals.notes += c.notes;
+            totals.clients += c.won ? 1 : 0;
+            const parts = [c.contacts && `${c.contacts} contacts`, c.interactions && `${c.interactions} conversations`, c.follow_ups && `${c.follow_ups} follow-ups`, c.notes && `${c.notes} notes`, c.won && 'client'].filter(Boolean);
+            if (parts.length > 0) note = `Also saved: ${parts.join(', ')}.`;
+          } catch (err) {
+            await this.historyRepo.discardCompany({ company_id: s.company_id, lead_id: s.lead_id, actor_emp_id: actor.emp_id }).catch(() => undefined);
+            failed++;
+            results.push({ row: s.row_number, company: o.company_name, status: 'failed', message: `Not imported: ${err instanceof Error ? err.message.slice(0, 250) : 'its contacts, conversations, follow-ups or notes could not be saved.'}` });
+            continue;
+          }
+        }
+        created++;
+        if (s.lead_id !== null) leads++;
+        results.push({ row: s.row_number, company: o.company_name, status: 'created', company_code: s.company_code, lead_code: s.lead_code, message: note });
       }
-      failed += slice.length - saved.length;
     }
 
     let updated = 0;
@@ -297,7 +413,7 @@ export class ImportUseCases {
     const errorRows = outcomes.filter((o) => o.status === 'error').length;
     const status: ImportResult['status'] = created + updated === 0 && failed > 0 ? 'failed' : failed > 0 || errorRows > 0 ? 'completed_with_errors' : 'completed';
     const batch = await this.repo.getBatchByJob(job.jobId);
-    const summary = { companies_created: created, companies_updated: updated, leads_created: leads, skipped_existing: skippedExisting, rows_with_errors: errorRows, rows_failed: failed };
+    const summary = { companies_created: created, companies_updated: updated, leads_created: leads, history: totals, skipped_existing: skippedExisting, rows_with_errors: errorRows, rows_failed: failed };
 
     results.sort((a, b) => a.row - b.row);
     job.options = { ...job.options, result: summary, row_results: results, batch_id: batchId, undo_until: batch?.can_undo_until?.toISOString() };
@@ -378,10 +494,12 @@ export class ImportUseCases {
   /** "Download error rows to fix and re-import": the rows with a problem, as they were in the file, plus the Problem. */
   async errorRows(jobId: string, format: 'xlsx' | 'csv', actor: SalesActor): Promise<{ buffer: Buffer; filename: string; contentType: string }> {
     const job = await this.findJob(jobId, actor);
-    const { rows, columns } = await this.loadRows(job);
+    const { rows, columns, extra } = await this.loadRows(job);
     const mapping = (job.options.mapping as ColumnMapping) ?? toMapping(suggestMapping(columns));
     const options: ImportOptions = { create_leads: (job.options.create_leads as boolean) ?? true, existing_rows: (job.options.existing_rows as ExistingRowsPolicy) ?? 'skip' };
-    const outcomes = (await this.analyze(rows, mapping, options)).filter((o) => o.status === 'error');
+    const edits = this.cleanEdits(job.options.excluded_rows as number[] | undefined, job.options.overrides as PreviewEdits['overrides'] | undefined, rows, columns);
+    const analysis = await this.analyze(rows, mapping, options, extra, edits);
+    const outcomes = analysis.outcomes.filter((o) => o.status === 'error');
     const byRow = new Map(rows.map((r) => [r.rowNumber, r]));
 
     const headers = [
@@ -392,18 +510,70 @@ export class ImportUseCases {
       ...(byRow.get(o.row_number)?.cells ?? {}),
       __problem: o.errors.map((e) => `${e.field}: ${e.message}`).join(' | '),
     }));
+    const sheets: SheetData[] = [{ name: 'Companies', headers, data }];
+    if (analysis.extraIssues.length > 0 && format === 'xlsx') {
+      sheets.push({
+        name: 'Issues',
+        headers: [{ key: 'sheet', header: 'Sheet', width: 16 }, { key: 'row', header: 'Row', width: 8 }, { key: 'company_key', header: 'Company Key', width: 16 }, { key: 'field', header: 'Field', width: 24 }, { key: 'severity', header: 'Type', width: 10 }, { key: 'message', header: 'Problem', width: 80 }],
+        data: analysis.extraIssues.map((i) => ({ ...i })),
+      });
+    }
+    return {
+      buffer: await this.writeSheets(sheets, format),
+      filename: `import-error-rows.${format}`,
+      contentType: format === 'xlsx' ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' : 'text/csv; charset=utf-8',
+    };
+  }
+
+  private async writeSheets(sheets: SheetData[], format: 'xlsx' | 'csv'): Promise<Buffer> {
     const out = new PassThrough();
     const sink = streamToBuffer(out);
     await this.writers[format].writeWorkbookStream(
-      [{ name: 'Companies', headers }],
-      new Map([['Companies', async function* () { yield data; }]]),
+      sheets.map((s) => ({ name: s.name, headers: s.headers })),
+      new Map(sheets.map((s) => [s.name, async function* () { yield s.data; }])),
       format,
       out,
     );
     out.end();
+    return sink;
+  }
+
+  // ------------------------------------------------------------- reports ----
+
+  /**
+   * "Download failed records / successful records / import summary" for a finished import. Built from the row results
+   * kept with the job, so it shows exactly what was reported at the end of the import.
+   */
+  async report(jobId: string, kind: 'success' | 'failed' | 'summary', format: 'xlsx' | 'csv', actor: SalesActor): Promise<{ buffer: Buffer; filename: string; contentType: string }> {
+    const job = await this.findJob(jobId, actor);
+    if (!['completed', 'completed_with_errors', 'failed'].includes(job.status)) {
+      throw new ConflictSalesError('This import has not finished yet, so there is no report.', 'IMPORT_NOT_FINISHED');
+    }
+    const results = (job.options.row_results as ImportResult['row_results'] | undefined) ?? [];
+    const rowHeaders = [
+      { key: 'row', header: 'Row', width: 8 }, { key: 'company', header: 'Company', width: 34 }, { key: 'status', header: 'Result', width: 12 },
+      { key: 'company_code', header: 'Company ID', width: 14 }, { key: 'lead_code', header: 'Lead ID', width: 14 }, { key: 'message', header: 'Details', width: 80 },
+    ];
+    const rows = (list: ImportResult['row_results']) => list.map((r) => ({ row: r.row, company: r.company, status: r.status, company_code: r.company_code ?? '', lead_code: r.lead_code ?? '', message: r.message ?? '' }));
+    let sheets: SheetData[];
+    if (kind === 'success') {
+      sheets = [{ name: 'Imported', headers: rowHeaders, data: rows(results.filter((r) => r.status === 'created' || r.status === 'updated')) }];
+    } else if (kind === 'failed') {
+      sheets = [{ name: 'Not imported', headers: rowHeaders, data: rows(results.filter((r) => r.status === 'error' || r.status === 'failed' || r.status === 'skipped')) }];
+    } else {
+      const r = (job.options.result as Record<string, unknown> | undefined) ?? {};
+      const h = (r.history as HistoryTotals | undefined) ?? emptyTotals();
+      const lines: Array<[string, unknown]> = [
+        ['File', job.originalFilename ?? ''], ['Status', job.status.replace(/_/g, ' ')], ['Started', job.startedAt?.toISOString() ?? ''], ['Finished', job.finishedAt?.toISOString() ?? ''],
+        ['Rows in the Companies sheet', job.totalRows], ['Companies created', r.companies_created ?? 0], ['Companies updated', r.companies_updated ?? 0], ['Leads created', r.leads_created ?? 0],
+        ['Contacts added', h.contacts], ['Conversations saved', h.interactions], ['Follow-ups saved', h.follow_ups], ['Notes saved', h.notes], ['Clients created', h.clients],
+        ['Skipped (already in the database)', r.skipped_existing ?? 0], ['Rows with errors (not imported)', r.rows_with_errors ?? 0], ['Rows that could not be saved', r.rows_failed ?? 0],
+      ];
+      sheets = [{ name: 'Summary', headers: [{ key: 'item', header: 'Item', width: 40 }, { key: 'value', header: 'Value', width: 50 }], data: lines.map(([item, value]) => ({ item, value })) }];
+    }
     return {
-      buffer: await sink,
-      filename: `import-error-rows.${format}`,
+      buffer: await this.writeSheets(sheets, format),
+      filename: `import-${kind}.${format}`,
       contentType: format === 'xlsx' ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' : 'text/csv; charset=utf-8',
     };
   }
@@ -419,14 +589,18 @@ export class ImportUseCases {
     if (now.getTime() > batch.can_undo_until.getTime()) {
       throw new ImportNotUndoableError('An import can be undone only within 24 hours.');
     }
-    const blockers = await this.repo.findUndoBlockers(batch);
+    // What the import itself saved from the extra sheets is not "work done since the import".
+    const imported = this.historyRepo ? await this.historyRepo.listImported(batch.batch_id) : undefined;
+    const blockers = await this.repo.findUndoBlockers(batch, imported);
     if (blockers.length > 0) {
       throw new ImportNotUndoableError(
         `${blockers.length} imported ${blockers.length === 1 ? 'company has' : 'companies have'} a lead, conversation, note or follow-up of their own since the import, so it cannot be undone.`,
         blockers,
       );
     }
-    return this.repo.undo({ batch, actor_emp_id: actor.emp_id });
+    const removed = await this.repo.undo({ batch, actor_emp_id: actor.emp_id });
+    const extra = this.historyRepo ? await this.historyRepo.undo({ batch_id: batch.batch_id, company_ids: batch.companies_created, actor_emp_id: actor.emp_id }) : null;
+    return { ...removed, ...(extra ?? {}) };
   }
 
   // ------------------------------------------------------------- history ----
@@ -503,7 +677,7 @@ export class ImportUseCases {
     }
   }
 
-  private async parse(file: Buffer, format: 'xlsx' | 'csv'): Promise<{ rows: RawRow[]; columns: FileColumn[] }> {
+  private async parse(file: Buffer, format: 'xlsx' | 'csv'): Promise<ParsedFile> {
     let parsed;
     try {
       parsed = await this.readers[format].parseWorkbook(file, format, { phoneColumns: ['mobile', 'phone', 'pin'], maxColumns: 60, maxCellLength: 2000 });
@@ -517,21 +691,33 @@ export class ImportUseCases {
     const sheetRows = sheet ? sheet[1] : [];
     const first = sheetRows[0];
     const keys = first ? Object.keys(first.cells) : [];
+
+    // The extra sheets of a multi-sheet file (Contacts, Leads, Interactions, Follow-ups, Won, Notes). All optional.
+    const extra: RawSheets = {};
+    for (const [name, list] of parsed.sheets.entries()) {
+      const wanted = HISTORY_SHEETS.find((h) => h === name.trim().toLowerCase());
+      if (!wanted) continue;
+      if (list.length > MAX_EXTRA_SHEET_ROWS) {
+        throw new FileProblemError(`The ${name} sheet has ${list.length} rows. A sheet can have up to ${MAX_EXTRA_SHEET_ROWS.toLocaleString('en-US')} rows.`, 'TOO_MANY_ROWS', 422);
+      }
+      extra[wanted] = list.map((r) => ({ rowNumber: r.rowNumber, cells: r.cells }));
+    }
     return {
       rows: sheetRows.map((r) => ({ rowNumber: r.rowNumber, cells: r.cells })),
       columns: keys.map((k) => ({ key: k, header: k.replace(/_/g, ' ').replace(/(^|\s)\S/g, (c) => c.toUpperCase()) })),
+      extra,
     };
   }
 
-  private async loadRows(job: DataTransferJob): Promise<{ rows: RawRow[]; columns: FileColumn[] }> {
+  private async loadRows(job: DataTransferJob): Promise<ParsedFile> {
     if (!job.fileKey) throw new NotFoundSalesError('The uploaded file is missing.', 'IMPORT_FILE_MISSING', 'job_id');
     const buffer = await streamToBuffer(await this.storage.openReadStream(job.fileKey, 'imports'));
     return this.parse(buffer, job.format);
   }
 
-  private async runCheck(job: DataTransferJob, rows: RawRow[], mapping: ColumnMapping, options: ImportOptions): Promise<CheckResult> {
-    const outcomes = await this.analyze(rows, mapping, options);
-    const result = this.summarize(job.jobId, outcomes, mapping, options);
+  private async runCheck(job: DataTransferJob, rows: RawRow[], mapping: ColumnMapping, options: ImportOptions, extra: RawSheets, edits: PreviewEdits): Promise<CheckResult> {
+    const { outcomes, extraIssues } = await this.analyze(rows, mapping, options, extra, edits);
+    const result = this.summarize(job.jobId, outcomes, mapping, options, extra, edits, extraIssues);
 
     const issues: JobIssue[] = [];
     for (const o of outcomes) {
@@ -544,6 +730,8 @@ export class ImportUseCases {
       ...job.options,
       mapping,
       ...options,
+      excluded_rows: edits.excluded_rows,
+      overrides: edits.overrides,
       issues: issues.slice(0, MAX_ISSUES_STORED),
       duplicates_count: result.summary.already_in_database,
       summary: result.summary,
@@ -552,8 +740,16 @@ export class ImportUseCases {
     return result;
   }
 
-  private summarize(jobId: string, outcomes: RowOutcome[], mapping: ColumnMapping, options: ImportOptions): CheckResult {
+  private summarize(jobId: string, outcomes: RowOutcome[], mapping: ColumnMapping, options: ImportOptions, extra: RawSheets, edits: PreviewEdits, extraIssues: HistoryIssue[]): CheckResult {
     const ready = outcomes.filter((o) => o.status === 'ready');
+    const plans = ready.map((o) => o.plan).filter((p): p is CompanyPlan => !!p);
+    const history: HistoryTotals = {
+      contacts: plans.reduce((n, p) => n + p.contacts.filter((c) => !c.is_primary).length, 0),
+      interactions: plans.reduce((n, p) => n + p.interactions.length, 0),
+      follow_ups: plans.reduce((n, p) => n + p.follow_ups.length, 0),
+      notes: plans.reduce((n, p) => n + p.notes.length, 0),
+      clients: plans.filter((p) => p.won).length,
+    };
     const existing = outcomes.filter((o) => o.status === 'existing');
     const bad = outcomes.filter((o) => o.status === 'error');
     const errorList = bad.flatMap((o) => o.errors.map((e) => ({ row: o.row_number, company: o.company_name || null, field: e.field, problem: e.message })));
@@ -561,8 +757,34 @@ export class ImportUseCases {
     return {
       job_id: jobId,
       summary: { total: outcomes.length, ready: ready.length, already_in_database: existing.length, with_errors: bad.length },
-      will_create: { companies: ready.length, leads: ready.filter((o) => o.commit?.lead).length },
+      will_create: { companies: ready.length, leads: ready.filter((o) => o.commit?.lead).length, ...history },
       will_fill: willFill,
+      sheets: [{ name: 'Companies', rows: outcomes.length + edits.excluded_rows.length }, ...Object.entries(extra).map(([name, list]) => ({ name: SHEET_TITLE[name as HistorySheet], rows: (list ?? []).length }))],
+      extra_issues: extraIssues.slice(0, MAX_ROWS_RETURNED),
+      extra_issues_truncated: extraIssues.length > MAX_ROWS_RETURNED,
+      preview: [...outcomes]
+        .sort((a, b) => Number(b.status === 'error') - Number(a.status === 'error') || a.row_number - b.row_number)
+        .slice(0, MAX_ROWS_RETURNED)
+        .map((o): PreviewRow => ({
+          row: o.row_number,
+          company_key: o.company_key ?? null,
+          company: o.company_name,
+          city: o.converted.company.city,
+          status: o.status,
+          problems: o.errors.map((e) => `${e.field}: ${e.message}`),
+          warnings: o.warnings,
+          includes: {
+            contacts: o.plan ? o.plan.contacts.filter((c) => !c.is_primary).length : 0,
+            interactions: o.plan?.interactions.length ?? 0,
+            follow_ups: o.plan?.follow_ups.length ?? 0,
+            notes: o.plan?.notes.length ?? 0,
+            client: !!o.plan?.won,
+            lead_status: o.plan?.lead?.stage ?? null,
+          },
+          cells: o.cells ?? {},
+        })),
+      preview_truncated: outcomes.length > MAX_ROWS_RETURNED,
+      edits,
       errors: errorList.slice(0, MAX_ROWS_RETURNED),
       errors_truncated: errorList.length > MAX_ROWS_RETURNED,
       existing: existing.slice(0, MAX_ROWS_RETURNED).map((o) => ({
@@ -579,9 +801,64 @@ export class ImportUseCases {
   // -------------------------------------------------------------- analysis ----
 
   /** Converts and checks every row: the form rules, the masters, duplicates in the file and in the database. */
-  async analyze(rows: RawRow[], mapping: ColumnMapping, options: ImportOptions): Promise<RowOutcome[]> {
+  async analyze(
+    allRows: RawRow[],
+    mapping: ColumnMapping,
+    options: ImportOptions,
+    extra: RawSheets = {},
+    edits: PreviewEdits = NO_EDITS,
+  ): Promise<{ outcomes: RowOutcome[]; extraIssues: HistoryIssue[] }> {
     const lookups = await this.repo.loadLookups();
-    const outcomes: RowOutcome[] = rows.map((r) => this.checkRow(r, mapping, options, lookups));
+
+    // Corrections made in the preview replace the cell values; excluded companies are left out altogether.
+    const excluded = new Set(edits.excluded_rows);
+    const corrected = allRows.map((r) => {
+      const fix = edits.overrides[String(r.rowNumber)];
+      return fix ? { rowNumber: r.rowNumber, cells: { ...r.cells, ...fix } } : r;
+    });
+
+    // Multi-sheet files: what the extra sheets say about each company, found through its Company Key.
+    const hasExtra = Object.values(extra).some((list) => list && list.length > 0);
+    const keyed = new Map<string, { row: number }>();
+    const keyOfRow = new Map<number, string>();
+    const dupKeyErrors = new Map<number, string>();
+    if (hasExtra) {
+      for (const r of corrected) {
+        const key = cellReader(r.cells)('Company Key');
+        if (!key) continue;
+        if (keyed.has(key)) dupKeyErrors.set(r.rowNumber, `The Company Key "${key}" is already used in row ${keyed.get(key)!.row}.`);
+        else keyed.set(key, { row: r.rowNumber });
+        keyOfRow.set(r.rowNumber, key);
+      }
+    }
+    const built = hasExtra ? buildHistory(extra, keyed, lookups.users) : null;
+    const excludedKeys = new Set([...keyOfRow].filter(([row]) => excluded.has(row)).map(([, key]) => key));
+    const extraIssues = (built?.issues ?? []).filter((i) => !i.company_key || !excludedKeys.has(i.company_key));
+
+    const rows = corrected.filter((r) => !excluded.has(r.rowNumber));
+    const outcomes: RowOutcome[] = rows.map((r) => {
+      const key = keyOfRow.get(r.rowNumber) ?? null;
+      const plan = key && built && !dupKeyErrors.has(r.rowNumber) ? (built.plans.get(key) ?? null) : null;
+      const o = this.checkRow(r, mapping, options, lookups, plan);
+      o.company_key = key;
+      o.plan = plan;
+      o.cells = r.cells;
+      if (hasExtra && !key) o.warnings.push('This row has no Company Key, so nothing from the other sheets is imported for it.');
+      const dup = dupKeyErrors.get(r.rowNumber);
+      if (dup) {
+        o.errors.push({ field: 'Company Key', message: dup });
+        o.status = 'error';
+        o.commit = null;
+      }
+      // A company with a problem in its extra sheets is not imported at all, so no half-imported company is left.
+      if (key && built?.blocked.has(key)) {
+        for (const i of built.issues.filter((x) => x.company_key === key && x.severity === 'error')) o.errors.push({ field: `${i.sheet} row ${i.row}: ${i.field}`, message: i.message });
+        o.status = 'error';
+        o.commit = null;
+      }
+      if (key && built) for (const i of built.issues.filter((x) => x.company_key === key && x.severity === 'warning')) o.warnings.push(`${i.sheet} row ${i.row}: ${i.message}`);
+      return o;
+    });
 
     // Duplicates inside the file: the first row wins, later ones are errors to fix.
     const seen = { name_city: new Map<string, number>(), mobile: new Map<string, number>(), email: new Map<string, number>() };
@@ -618,13 +895,31 @@ export class ImportUseCases {
         o.status = 'existing';
         o.existing = hit;
         o.commit = null;
+        if (o.plan) o.warnings.push('The company is already in the database, so its contacts, conversations, follow-ups and notes from the other sheets are not imported.');
       }
     });
-    return outcomes;
+    return { outcomes, extraIssues };
   }
 
-  private checkRow(r: RawRow, mapping: ColumnMapping, options: ImportOptions, lk: ImportLookups): RowOutcome {
-    const row = convertRow(r.rowNumber, pickValues(r.cells, mapping));
+  private checkRow(r: RawRow, mapping: ColumnMapping, options: ImportOptions, lk: ImportLookups, plan: CompanyPlan | null = null): RowOutcome {
+    // A multi-sheet file keeps the contact and the lead in their own sheets: they feed the same checks as the company row.
+    const values = pickValues(r.cells, mapping);
+    if (plan) {
+      const primary = plan.contacts.find((c) => c.is_primary);
+      if (primary) {
+        values.contact_name = primary.name;
+        if (primary.designation) values.designation = primary.designation;
+        if (primary.mobile) values.mobile = primary.mobile;
+        if (primary.email) values.email = primary.email;
+      }
+      if (plan.lead) {
+        if (plan.lead.lead_source) values.lead_source = plan.lead.lead_source;
+        if (plan.lead.lead_by) values.lead_by = plan.lead.lead_by;
+        if (plan.lead.service_fit) values.service_fit = plan.lead.service_fit;
+        options = { ...options, create_leads: true };
+      }
+    }
+    const row = convertRow(r.rowNumber, values);
     const errors = [...row.errors];
     const warnings = [...row.warnings];
     const err = (field: string, message: string) => errors.push({ field, message });

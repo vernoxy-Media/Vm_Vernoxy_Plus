@@ -1,4 +1,5 @@
 import { CompanyFields, ContactFields } from '../../domain/entities/sales-company';
+import { ImportedHistoryIds } from './sales-import-history.repository.port';
 
 /** Master values, loaded once per import so every row is checked without a query of its own. */
 export interface ImportLookups {
@@ -92,7 +93,7 @@ export interface SalesImportRepositoryPort {
 
   getBatchByJob(jobId: string): Promise<ImportBatch | null>;
   /** Companies of the batch that got a lead, conversation, note or follow-up of their own since the import. */
-  findUndoBlockers(batch: ImportBatch): Promise<UndoBlocker[]>;
+  findUndoBlockers(batch: ImportBatch, imported?: ImportedHistoryIds): Promise<UndoBlocker[]>;
   undo(data: { batch: ImportBatch; actor_emp_id: number }): Promise<{ companies_removed: number; leads_removed: number }>;
 
   employeeNames(ids: number[]): Promise<Map<number, string>>;

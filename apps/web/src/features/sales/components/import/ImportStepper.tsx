@@ -1,16 +1,15 @@
 import React from 'react';
-import { Check, Upload, ArrowRightLeft, CheckCircle2, Award } from 'lucide-react';
+import { Check, Upload, CheckCircle2, Award } from 'lucide-react';
 
 export interface ImportStepperProps {
-  currentStep: 1 | 2 | 3 | 4;
+  currentStep: 1 | 2 | 3;
 }
 
 export const ImportStepper: React.FC<ImportStepperProps> = ({ currentStep }) => {
   const steps = [
     { number: 1, label: 'Upload File', icon: Upload },
-    { number: 2, label: 'Match Columns', icon: ArrowRightLeft },
-    { number: 3, label: 'Check & Preview', icon: CheckCircle2 },
-    { number: 4, label: 'Import Results', icon: Award },
+    { number: 2, label: 'Check Data', icon: CheckCircle2 },
+    { number: 3, label: 'Done', icon: Award },
   ];
 
   return (
@@ -47,7 +46,7 @@ export const ImportStepper: React.FC<ImportStepperProps> = ({ currentStep }) => 
               {idx < steps.length - 1 && (
                 <div
                   className={`flex-1 h-0.5 mx-2 sm:mx-4 -mt-5 transition-all ${
-                    currentStep > idx + 1 ? 'bg-emerald-500' : 'bg-gray-200'
+                    currentStep > step.number ? 'bg-emerald-500' : 'bg-gray-200'
                   }`}
                 />
               )}

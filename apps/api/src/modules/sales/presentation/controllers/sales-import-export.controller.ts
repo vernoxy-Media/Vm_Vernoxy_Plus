@@ -13,7 +13,7 @@ import { FileProblemError } from '../../domain/errors/sales.errors';
 import { ImportUseCases } from '../../application/use-cases/import.use-cases';
 import { ExportUseCases } from '../../application/use-cases/export.use-cases';
 import { SalesRightsUseCases } from '../../application/use-cases/rights.use-cases';
-import { CheckImportBodyDto, ExportBodyDto, FormatQueryDto, HistoryQueryDto, SetRightsBodyDto } from '../dto/sales-import-export.dto';
+import { CheckImportBodyDto, ExportBodyDto, FormatQueryDto, HistoryQueryDto, ReportQueryDto, SetRightsBodyDto } from '../dto/sales-import-export.dto';
 import { ListSalesCompaniesQueryDto } from '../dto/sales-company.dto';
 import { LeadFiltersQueryDto } from '../dto/sales-lead.dto';
 import { ListFollowUpsQueryDto } from '../dto/sales-follow-up.dto';
@@ -104,6 +104,15 @@ export class SalesImportExportController {
     return run(async () => {
       await this.rights.require(actor, 'import');
       return file(res, await this.imports.errorRows(jobId, q.format ?? 'xlsx', actor));
+    });
+  }
+
+  @Get('imports/:jobId/report')
+  @ApiOperation({ summary: 'Download a finished import: the imported rows, the rows that were not imported, or the summary' })
+  report(@Param('jobId', ParseUUIDPipe) jobId: string, @Query() q: ReportQueryDto, @CurrentSalesActor() actor: SalesActor, @Res({ passthrough: true }) res: Response) {
+    return run(async () => {
+      await this.rights.require(actor, 'import');
+      return file(res, await this.imports.report(jobId, q.kind, q.format ?? 'xlsx', actor));
     });
   }
 
