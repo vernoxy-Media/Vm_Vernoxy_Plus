@@ -384,7 +384,7 @@ export const CompaniesListPage: React.FC<CompaniesListPageProps> = ({
                   <th className="px-3 py-3">Location</th>
                   <th className="px-3 py-3">Industry</th>
                   <th className="px-3 py-3">Contact</th>
-                  <th className="px-3 py-3">Website</th>
+                  <th className="px-3 py-3 text-center">Communications</th>
                   <th className="px-3 py-3">Status</th>
                   <th className="py-3 pl-3 pr-5 text-right">Actions</th>
                 </tr>

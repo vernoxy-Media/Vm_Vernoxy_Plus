@@ -91,6 +91,7 @@ export interface SalesCompanyListItem {
   industry: string | null;
   contact_person: string | null;
   website_quality: string | null;
+  communication_count: number;
   lead: CompanyLeadRef;
   can_convert_to_lead: boolean;
 }

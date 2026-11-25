@@ -80,7 +80,7 @@ export const CompanyRow: React.FC<CompanyRowProps> = ({
 
   return (
     <>
-      {/* Desktop table row. Cells follow the header: Company, Location, Industry, Contact, Website, Status, Actions */}
+      {/* Desktop table row. Cells follow the header: Company, Location, Industry, Contact, Status, Actions */}
       {variant === 'table' && (
         <tr className={`group transition-colors ${isSelected ? 'bg-blue-50/50' : 'hover:bg-slate-50/80'}`}>
           <td className="w-12 py-3.5 pl-5 pr-2">
@@ -141,8 +141,8 @@ export const CompanyRow: React.FC<CompanyRowProps> = ({
             )}
           </td>
 
-          <td className="px-3 py-3.5">
-            <WebsiteQualityBadge quality={company.website_quality} />
+          <td className="px-3 py-3.5 text-center text-sm tabular-nums text-slate-700">
+            {company.communication_count > 0 ? company.communication_count : <span className="text-slate-300">0</span>}
           </td>
 
           <td className="px-3 py-3.5">{renderLeadTag()}</td>
