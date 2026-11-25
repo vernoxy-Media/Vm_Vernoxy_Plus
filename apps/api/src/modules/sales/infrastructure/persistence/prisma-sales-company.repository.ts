@@ -81,6 +81,16 @@ export class PrismaSalesCompanyRepository implements SalesCompanyRepositoryPort 
       this.prisma.companies.count({ where: { AND: [countersWhere, this.clientClause()] } }),
     ]);
 
+    // Same rule as the detail page's "Communication (n)": live rows of the company.
+    const commGroups = rows.length
+      ? await this.prisma.crm_communications.groupBy({
+          by: ['company_id'],
+          where: { company_id: { in: rows.map((r) => r.company_id) }, deleted_at: null },
+          _count: { _all: true },
+        })
+      : [];
+    const commCounts = new Map(commGroups.map((g) => [g.company_id, g._count._all]));
+
     const items: SalesCompanyListItem[] = rows.map((r) => {
       const lead = this.toLeadRef(r.is_client === true, r.client_code, r.leads[0] ?? null, r.clients[0]?.client_id ?? null);
       return {
@@ -92,6 +102,7 @@ export class PrismaSalesCompanyRepository implements SalesCompanyRepositoryPort 
         industry: r.industries_companies_sub_industry_idToindustries?.name ?? r.industries_companies_industry_idToindustries?.name ?? null,
         contact_person: r.company_persons[0]?.persons.name ?? r.contact_person ?? null,
         website_quality: r.website_quality,
+        communication_count: commCounts.get(r.company_id) ?? 0,
         lead,
         can_convert_to_lead: !(lead.kind === 'lead' && OPEN_STAGES.includes(lead.stage as never)),
       };

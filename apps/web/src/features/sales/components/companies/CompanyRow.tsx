@@ -141,6 +141,10 @@ export const CompanyRow: React.FC<CompanyRowProps> = ({
             )}
           </td>
 
+          <td className="px-3 py-3.5 text-center text-sm tabular-nums text-slate-700">
+            {company.communication_count > 0 ? company.communication_count : <span className="text-slate-300">0</span>}
+          </td>
+
           <td className="px-3 py-3.5">{renderLeadTag()}</td>
 
           <td className="py-3.5 pl-3 pr-4">
