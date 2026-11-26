@@ -23,6 +23,7 @@ import { SearchableSelect } from '../components/common/SearchableSelect';
 import { useSalesRights } from '../hooks/useSalesRights';
 import { useCampaignList } from '../hooks/useCampaigns';
 import { ReceivedCallsModal } from '../components/reports/ReceivedCallsModal';
+import { CompanyCallReport } from '../components/reports/CompanyCallReport';
 import { useSalesReport, type SalesReportFilters } from '../hooks/useSalesReport';
 import type { SalesReportCountRow, SalesReportResponse } from '../types/sales.types';
 
@@ -386,6 +387,8 @@ export const SalesReportsPage: React.FC = () => {
               </table>
             )}
           </Panel>
+
+          <CompanyCallReport filters={filters} isAdmin={isAdmin} />
 
           <div className="grid gap-5 lg:grid-cols-2">
             {/* Pipeline */}

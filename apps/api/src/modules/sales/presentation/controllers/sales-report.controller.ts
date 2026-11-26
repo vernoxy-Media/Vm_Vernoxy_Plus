@@ -1,6 +1,8 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, ParseIntPipe, Query, Res, StreamableFile, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiProperty, ApiPropertyOptional, ApiTags } from '@nestjs/swagger';
-import { IsIn, IsOptional, Matches } from 'class-validator';
+import { IsIn, IsOptional, IsString, Matches, MaxLength } from 'class-validator';
+import { Response } from 'express';
+import { COMPANY_CALL_SORTS, CompanyCallSort } from '../../domain/services/company-call-report.service';
 import { OUTCOMES } from '../../domain/services/activity-validator.service';
 import { OUTCOME_NOT_RECORDED } from '../../application/use-cases/sales-report.use-cases';
 import { JwtAuthGuard } from '../../../auth/public-api';
@@ -31,6 +33,14 @@ export class SalesReportCallsQueryDto extends SalesReportQueryDto {
   @IsIn([...OUTCOMES, OUTCOME_NOT_RECORDED], { message: 'Choose a call outcome from the list.' }) outcome!: string;
 }
 
+export class CompanyCallsQueryDto extends SalesReportQueryDto {
+  @ApiPropertyOptional({ description: 'Company name or contact person' }) @IsOptional() @IsString() @MaxLength(200) q?: string;
+
+  @ApiPropertyOptional({ enum: COMPANY_CALL_SORTS }) @IsOptional() @IsIn([...COMPANY_CALL_SORTS]) sort?: CompanyCallSort;
+
+  @ApiPropertyOptional({ enum: ['asc', 'desc'] }) @IsOptional() @IsIn(['asc', 'desc']) dir?: 'asc' | 'desc';
+}
+
 /** Sales Reports: pipeline, conversion, sources, people and lost reasons. */
 @ApiTags('Sales - Reports')
 @ApiBearerAuth()
@@ -54,6 +64,38 @@ export class SalesReportController {
   async receivedCalls(@Query() query: SalesReportCallsQueryDto, @CurrentSalesActor() actor: SalesActor) {
     try {
       return await this.reports.receivedCalls(query, query.outcome, actor);
+    } catch (err) {
+      throw mapSalesErrorToHttpException(err);
+    }
+  }
+
+  @Get('company-calls')
+  @ApiOperation({ summary: 'One row per company with at least one received call, with search and sorting. Takes the same filters as the summary.' })
+  async companyCalls(@Query() query: CompanyCallsQueryDto, @CurrentSalesActor() actor: SalesActor) {
+    try {
+      return await this.reports.companyCalls(query, query, actor);
+    } catch (err) {
+      throw mapSalesErrorToHttpException(err);
+    }
+  }
+
+  @Get('company-calls/export')
+  @ApiOperation({ summary: 'The company-wise report as an Excel file, with the same filters, search and sorting' })
+  async exportCompanyCalls(@Query() query: CompanyCallsQueryDto, @CurrentSalesActor() actor: SalesActor, @Res({ passthrough: true }) res: Response) {
+    try {
+      const file = await this.reports.exportCompanyCalls(query, query, actor);
+      res.set({ 'Content-Type': file.contentType, 'Content-Disposition': `attachment; filename="${file.filename}"`, 'Cache-Control': 'no-store' });
+      return new StreamableFile(file.buffer);
+    } catch (err) {
+      throw mapSalesErrorToHttpException(err);
+    }
+  }
+
+  @Get('company-calls/:companyId/history')
+  @ApiOperation({ summary: "A company's complete call history. A Sales User only sees their own calls." })
+  async companyCallHistory(@Param('companyId', ParseIntPipe) companyId: number, @CurrentSalesActor() actor: SalesActor) {
+    try {
+      return await this.reports.companyCallHistory(companyId, actor);
     } catch (err) {
       throw mapSalesErrorToHttpException(err);
     }

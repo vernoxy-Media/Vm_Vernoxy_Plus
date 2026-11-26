@@ -9,6 +9,7 @@ import {
   SalesReportScope,
 } from '../../application/ports/sales-report.repository.port';
 import { OUTCOMES } from '../../domain/services/activity-validator.service';
+import { CompanyCallAttempt } from '../../domain/services/company-call-report.service';
 import { ReportExtras, ReportLeadRow } from '../../domain/services/sales-report.service';
 
 @Injectable()
@@ -72,6 +73,29 @@ export class PrismaSalesReportRepository implements SalesReportRepositoryPort {
         LEFT JOIN employees e ON e.emp_id = m.created_by
        WHERE ${this.callWhere(range, scope)} AND m.call_status = 'Received' AND ${match}
        ORDER BY lower(COALESCE(co.name, l.company_name)), co.company_id, m.communication_date DESC`);
+  }
+
+  private selectCalls(where: Prisma.Sql): Promise<CompanyCallAttempt[]> {
+    return this.prisma.$queryRaw<CompanyCallAttempt[]>(Prisma.sql`
+      SELECT m.communication_id, co.company_id, m.lead_id, COALESCE(co.name, l.company_name) AS company_name,
+             COALESCE(co.contact_person, l.contact_person) AS company_contact, m.contact_person_name AS call_contact,
+             m.communication_date AS call_date, m.call_status, m.not_received_reason, m.outcome,
+             m.call_duration_seconds AS duration_seconds, m.what_discussed AS remark, e.name AS called_by
+        FROM crm_communications m
+        LEFT JOIN leads l ON l.lead_id = m.lead_id
+        LEFT JOIN companies co ON co.company_id = COALESCE(m.company_id, l.company_id)
+        LEFT JOIN employees e ON e.emp_id = m.created_by
+       WHERE ${where}
+       ORDER BY m.communication_date DESC, m.communication_id DESC`);
+  }
+
+  callAttempts(range: { from: Date | null; to: Date | null }, scope: SalesReportCallScope): Promise<CompanyCallAttempt[]> {
+    return this.selectCalls(this.callWhere(range, scope));
+  }
+
+  companyCallHistory(companyId: number, personId?: number): Promise<CompanyCallAttempt[]> {
+    const where = this.callWhere({ from: null, to: null }, { personId });
+    return this.selectCalls(Prisma.sql`${where} AND co.company_id = ${companyId}`);
   }
 
   async leadRows({ personId, companyIds }: SalesReportScope): Promise<ReportLeadRow[]> {

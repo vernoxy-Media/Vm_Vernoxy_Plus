@@ -1,4 +1,5 @@
 import { ReportExtras, ReportLeadRow } from '../../domain/services/sales-report.service';
+import { CompanyCallAttempt, CompanyCallRow } from '../../domain/services/company-call-report.service';
 
 export interface SalesReportScope {
   /** Only this person's leads and follow-ups. */
@@ -31,7 +32,15 @@ export interface SalesReportCallRecord {
   called_by: string | null;
 }
 
+export interface CompanyCallExcelPort {
+  build(rows: CompanyCallRow[]): Promise<Buffer>;
+}
+
 export interface SalesReportRepositoryPort {
+  /** Every call attempt of the selection, whatever its status. */
+  callAttempts(range: { from: Date | null; to: Date | null }, scope: SalesReportCallScope): Promise<CompanyCallAttempt[]>;
+  /** One company's calls from any date, newest first; with a personId, only that person's. */
+  companyCallHistory(companyId: number, personId?: number): Promise<CompanyCallAttempt[]>;
   /** Call attempts made in the period, optionally by one person and optionally only those logged inside one campaign. */
   callCounts(range: { from: Date | null; to: Date | null }, scope: SalesReportCallScope): Promise<SalesReportCallCounts>;
   /** The received calls of the same selection, counted by their saved outcome. */

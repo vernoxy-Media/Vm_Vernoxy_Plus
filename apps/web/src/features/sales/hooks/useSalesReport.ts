@@ -23,6 +23,74 @@ export interface ReceivedCallRecord {
   called_by: string | null;
 }
 
+export type CompanyCallSort =
+  | 'company_name'
+  | 'contact_person'
+  | 'total'
+  | 'received'
+  | 'not_received'
+  | 'latest_outcome'
+  | 'last_call_date'
+  | 'last_remark';
+
+export interface CompanyCallView {
+  q: string;
+  sort: CompanyCallSort;
+  dir: 'asc' | 'desc';
+}
+
+export interface CompanyCallRow {
+  key: string;
+  company_id: number | null;
+  company_name: string;
+  contact_person: string | null;
+  total: number;
+  received: number;
+  not_received: number;
+  latest_outcome: string | null;
+  last_call_date: string;
+  last_remark: string | null;
+}
+
+export interface CompanyCallHistoryItem {
+  communication_id: number;
+  call_date: string;
+  call_status: string | null;
+  not_received_reason: string | null;
+  outcome: string | null;
+  duration_seconds: number | null;
+  remark: string | null;
+  called_by: string | null;
+}
+
+function companyCallParams(filters: SalesReportFilters, canChooseUser: boolean, view: CompanyCallView): string {
+  const q = reportParams(filters, canChooseUser);
+  if (view.q.trim()) q.set('q', view.q.trim());
+  q.set('sort', view.sort);
+  q.set('dir', view.dir);
+  return q.toString();
+}
+
+export function useCompanyCalls(filters: SalesReportFilters, canChooseUser: boolean, view: CompanyCallView) {
+  return useQuery({
+    queryKey: ['/api/v1/sales/reports/company-calls', filters, canChooseUser, view],
+    queryFn: () => customFetch<{ items: CompanyCallRow[] }>(`/api/v1/sales/reports/company-calls?${companyCallParams(filters, canChooseUser, view)}`),
+    placeholderData: keepPreviousData,
+    staleTime: 60_000,
+  });
+}
+
+export const companyCallExportUrl = (filters: SalesReportFilters, canChooseUser: boolean, view: CompanyCallView) =>
+  `/api/v1/sales/reports/company-calls/export?${companyCallParams(filters, canChooseUser, view)}`;
+
+export function useCompanyCallHistory(companyId: number | null) {
+  return useQuery({
+    queryKey: ['/api/v1/sales/reports/company-calls/history', companyId],
+    queryFn: () => customFetch<{ items: CompanyCallHistoryItem[] }>(`/api/v1/sales/reports/company-calls/${companyId}/history`),
+    enabled: companyId !== null,
+  });
+}
+
 function reportParams(filters: SalesReportFilters, canChooseUser: boolean): URLSearchParams {
   const q = new URLSearchParams();
   if (filters.from) q.set('from', filters.from);

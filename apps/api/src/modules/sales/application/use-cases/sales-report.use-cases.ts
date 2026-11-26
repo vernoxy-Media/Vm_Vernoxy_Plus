@@ -1,5 +1,12 @@
 import { SalesActor } from '../ports/sales-access-policy.port';
-import { SalesReportCallCounts, SalesReportCallRecord, SalesReportRepositoryPort } from '../ports/sales-report.repository.port';
+import { CompanyCallExcelPort, SalesReportCallCounts, SalesReportCallRecord, SalesReportRepositoryPort } from '../ports/sales-report.repository.port';
+import {
+  buildCompanyCallRows,
+  CompanyCallAttempt,
+  CompanyCallRow,
+  CompanyCallView,
+  viewCompanyCallRows,
+} from '../../domain/services/company-call-report.service';
 import { FieldValidationError } from '../../domain/errors/sales.errors';
 import { OUTCOMES } from '../../domain/services/activity-validator.service';
 import { buildSalesReport, istDayBoundary, SalesReport } from '../../domain/services/sales-report.service';
@@ -25,7 +32,32 @@ export interface SalesReportResult extends SalesReport {
 
 /** The Sales Reports page: the Admin sees every lead, a Sales User sees only their own. */
 export class SalesReportUseCases {
-  constructor(private readonly repo: SalesReportRepositoryPort) {}
+  constructor(
+    private readonly repo: SalesReportRepositoryPort,
+    private readonly excel: CompanyCallExcelPort,
+  ) {}
+
+  /** One row per company with at least one received call in the period, searched and sorted. */
+  async companyCalls(query: SalesReportQuery, view: CompanyCallView, actor: SalesActor): Promise<{ items: CompanyCallRow[] }> {
+    const { period, personId, campaignId } = this.filters(query, actor);
+    const attempts = await this.repo.callAttempts(period, { personId, campaignId });
+    return { items: viewCompanyCallRows(buildCompanyCallRows(attempts), view) };
+  }
+
+  /** The same rows, in the same order, as an Excel file. */
+  async exportCompanyCalls(query: SalesReportQuery, view: CompanyCallView, actor: SalesActor) {
+    const { items } = await this.companyCalls(query, view, actor);
+    return {
+      buffer: await this.excel.build(items),
+      filename: `company-wise-calls-${query.from ?? 'all'}-${query.to ?? 'today'}.xlsx`,
+      contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    };
+  }
+
+  /** A company's complete call history: no date or campaign filter. A Sales User still sees only their own calls. */
+  async companyCallHistory(companyId: number, actor: SalesActor): Promise<{ items: CompanyCallAttempt[] }> {
+    return { items: await this.repo.companyCallHistory(companyId, actor.is_admin ? undefined : actor.emp_id) };
+  }
 
   async summary(query: SalesReportQuery, actor: SalesActor): Promise<SalesReportResult> {
     const { period, personId, campaignId } = this.filters(query, actor);

@@ -72,6 +72,7 @@ import { SALES_REPORT_REPOSITORY_PORT_TOKEN, SalesReportRepositoryPort } from '.
 import { PrismaSalesReportRepository } from './infrastructure/persistence/prisma-sales-report.repository';
 import { SalesReportUseCases } from './application/use-cases/sales-report.use-cases';
 import { SalesReportController } from './presentation/controllers/sales-report.controller';
+import { ExcelJsCompanyCallReportAdapter } from './infrastructure/adapters/exceljs-company-call-report.adapter';
 import { ImportUseCases } from './application/use-cases/import.use-cases';
 import { ExportUseCases } from './application/use-cases/export.use-cases';
 import { SalesRightsUseCases } from './application/use-cases/rights.use-cases';
@@ -141,7 +142,7 @@ const leadUseCase = <T>(cls: new (repo: SalesLeadRepositoryPort) => T) => ({
     {
       provide: SalesReportUseCases,
       inject: [SALES_REPORT_REPOSITORY_PORT_TOKEN],
-      useFactory: (repo: SalesReportRepositoryPort) => new SalesReportUseCases(repo),
+      useFactory: (repo: SalesReportRepositoryPort) => new SalesReportUseCases(repo, new ExcelJsCompanyCallReportAdapter()),
     },
     {
       provide: SALES_NOTIFIER_PORT_TOKEN,
