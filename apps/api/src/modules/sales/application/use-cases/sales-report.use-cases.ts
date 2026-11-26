@@ -1,5 +1,5 @@
 import { SalesActor } from '../ports/sales-access-policy.port';
-import { SalesReportRepositoryPort } from '../ports/sales-report.repository.port';
+import { SalesReportCallCounts, SalesReportRepositoryPort }from '../ports/sales-report.repository.port';
 import { FieldValidationError } from '../../domain/errors/sales.errors';
 import { buildSalesReport, istDayBoundary, SalesReport } from '../../domain/services/sales-report.service';
 
@@ -18,7 +18,7 @@ export interface SalesReportQuery {
 export class SalesReportUseCases {
   constructor(private readonly repo: SalesReportRepositoryPort) {}
 
-  async summary(query: SalesReportQuery, actor: SalesActor): Promise<SalesReport> {
+  async summary(query: SalesReportQuery, actor: SalesActor): Promise<SalesReport & { calls: SalesReportCallCounts }> {
     if (query.from && query.to && query.from > query.to) {
       throw new FieldValidationError([{ field: 'from', message: 'The start date must not be after the end date.' }]);
     }
@@ -32,10 +32,14 @@ export class SalesReportUseCases {
       to: query.to ? istDayBoundary(query.to, 'end') : null,
     };
     // A campaign has no leads of its own: it reaches them through the companies added to it.
-    const companyIds =
-      query.campaign_id && query.campaign_id !== 'all' ? await this.repo.campaignCompanyIds(Number(query.campaign_id)) : undefined;
+    const campaignId = query.campaign_id && query.campaign_id !== 'all' ? Number(query.campaign_id) : undefined;
+    const companyIds = campaignId ? await this.repo.campaignCompanyIds(campaignId) : undefined;
     const scope = { personId, companyIds };
-    const [rows, extras] = await Promise.all([this.repo.leadRows(scope), this.repo.extras(period, scope)]);
-    return buildSalesReport(rows, period, extras);
+    const [rows, extras, calls] = await Promise.all([
+      this.repo.leadRows(scope),
+      this.repo.extras(period, scope),
+      this.repo.callCounts(period, { personId, campaignId }),
+    ]);
+    return { ...buildSalesReport(rows, period, extras), calls };
   }
 }

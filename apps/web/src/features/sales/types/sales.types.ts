@@ -704,6 +704,7 @@ export interface SalesReportCountRow {
 
 export interface SalesReportResponse {
   period: { from: string | null; to: string | null };
+  calls: { total: number; received: number; not_received: number };
   totals: {
     companies: number;
     companies_in_period: number;

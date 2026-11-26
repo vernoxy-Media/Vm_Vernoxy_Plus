@@ -13,6 +13,9 @@ import {
   Loader2,
   PauseCircle,
   Inbox,
+  Phone,
+  PhoneCall,
+  PhoneMissed,
 } from 'lucide-react';
 import { StatCard, Field, inputCls } from '@/features/complaint/components/complaint-ui';
 import { useEmployeeOptionsQuery } from '@/features/organization/hooks/use-organization';
@@ -149,6 +152,11 @@ function downloadCsv(report: SalesReportResponse, salesUser: string, campaign: s
   add('Sales user', salesUser);
   add('Campaign', campaign);
   lines.push('');
+  add('Calling performance');
+  add('Total calls made', report.calls.total);
+  add('Calls received', report.calls.received);
+  add('Calls not received', report.calls.not_received);
+  lines.push('');
   add('Totals');
   Object.entries(report.totals).forEach(([k, v]) => add(k.replace(/_/g, ' '), v));
   lines.push('');
@@ -210,6 +218,8 @@ export const SalesReportsPage: React.FC = () => {
   };
 
   const t = report?.totals;
+  const calls = report?.calls;
+  const callsWithoutStatus = calls ? calls.total - calls.received - calls.not_received : 0;
   const stageMax = Math.max(1, ...(report?.by_stage.map((s) => s.count) ?? [1]));
   const trendMax = Math.max(1, ...(report?.trend.flatMap((m) => [m.created, m.converted]) ?? [1]));
   const periodText = report ? `${report.period.from ?? 'the beginning'} to ${report.period.to ?? 'today'}` : '';
@@ -296,7 +306,7 @@ export const SalesReportsPage: React.FC = () => {
           <Loader2 className="h-7 w-7 animate-spin text-blue-600" />
           <p className="text-sm font-medium text-slate-500">Building the report...</p>
         </div>
-      ) : isError || !report || !t ? (
+      ) : isError || !report || !t || !calls ? (
         <div className="rounded-2xl border border-slate-200 bg-white px-4 py-16 text-center">
           <span className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-50 text-rose-500 ring-1 ring-rose-100">
             <AlertTriangle className="h-7 w-7" />
@@ -308,6 +318,14 @@ export const SalesReportsPage: React.FC = () => {
         </div>
       ) : (
         <div className={`space-y-5 transition-opacity ${isFetching ? 'opacity-70' : ''}`}>
+          <section aria-label="Calling performance">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:gap-4">
+              <StatCard label="Total calls made" value={calls.total} hint={callsWithoutStatus > 0 ? `${callsWithoutStatus} with no status recorded` : 'All call attempts'} icon={Phone} tone="text-slate-900" tile="bg-blue-50 text-blue-600 ring-blue-100" bar="from-blue-500 to-indigo-500" />
+              <StatCard label="Calls received" value={calls.received} hint="Received / connected" icon={PhoneCall} tone="text-emerald-600" tile="bg-emerald-50 text-emerald-600 ring-emerald-100" bar="from-emerald-400 to-teal-400" />
+              <StatCard label="Calls not received" value={calls.not_received} hint="Not received / not connected" icon={PhoneMissed} tone="text-rose-600" tile="bg-rose-50 text-rose-600 ring-rose-100" bar="from-rose-500 to-pink-500" />
+            </div>
+          </section>
+
           {/* Totals */}
           <div className="grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 lg:grid-cols-4 lg:gap-4">
             <StatCard label="Leads" value={t.leads} hint={`${t.companies_in_period} companies added in this period`} icon={Layers} tone="text-slate-900" tile="bg-blue-50 text-blue-600 ring-blue-100" bar="from-blue-500 to-indigo-500" />

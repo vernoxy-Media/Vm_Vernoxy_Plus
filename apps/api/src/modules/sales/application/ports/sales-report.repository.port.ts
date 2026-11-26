@@ -7,7 +7,16 @@ export interface SalesReportScope {
   companyIds?: number[];
 }
 
+export interface SalesReportCallCounts {
+  /** Every call attempt. */
+  total: number;
+  received: number;
+  not_received: number;
+}
+
 export interface SalesReportRepositoryPort {
+  /** Call attempts made in the period, optionally by one person and optionally only those logged inside one campaign. */
+  callCounts(range: { from: Date | null; to: Date | null }, scope: { personId?: number; campaignId?: number }): Promise<SalesReportCallCounts>;
   /** The companies in a live campaign; empty when the campaign does not exist. */
   campaignCompanyIds(campaignId: number): Promise<number[]>;
   /** Every live lead in the scope, with the few fields the report needs. */

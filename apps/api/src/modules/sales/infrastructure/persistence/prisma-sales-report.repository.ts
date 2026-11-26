@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../../core/prisma/prisma.service';
-import { SalesReportRepositoryPort, SalesReportScope }from '../../application/ports/sales-report.repository.port';
+import { SalesReportCallCounts, SalesReportRepositoryPort, SalesReportScope } from'../../application/ports/sales-report.repository.port';
 import { ReportExtras, ReportLeadRow } from '../../domain/services/sales-report.service';
 
 @Injectable()
@@ -14,6 +15,29 @@ export class PrismaSalesReportRepository implements SalesReportRepositoryPort {
         JOIN crm_campaigns c ON c.campaign_id = cc.campaign_id AND c.deleted_at IS NULL
        WHERE cc.campaign_id = ${campaignId} AND cc.deleted_at IS NULL`;
     return rows.map((r) => r.company_id);
+  }
+
+  async callCounts(
+    range: { from: Date | null; to: Date | null },
+    { personId, campaignId }: { personId?: number; campaignId?: number },
+  ): Promise<SalesReportCallCounts> {
+    const conds: Prisma.Sql[] = [Prisma.sql`m.deleted_at IS NULL`, Prisma.sql`m.type = 'Call'`];
+    if (range.from) conds.push(Prisma.sql`m.communication_date >= ${range.from}`);
+    if (range.to) conds.push(Prisma.sql`m.communication_date <= ${range.to}`);
+    if (personId) conds.push(Prisma.sql`m.created_by = ${personId}`);
+    if (campaignId) {
+      conds.push(Prisma.sql`EXISTS (
+        SELECT 1 FROM crm_campaign_calls k
+          JOIN crm_campaigns c ON c.campaign_id = k.campaign_id AND c.deleted_at IS NULL
+         WHERE k.communication_id = m.communication_id AND k.campaign_id = ${campaignId} AND k.deleted_at IS NULL)`);
+    }
+    const rows = await this.prisma.$queryRaw<SalesReportCallCounts[]>(Prisma.sql`
+      SELECT count(*)::int AS total,
+             count(*) FILTER (WHERE m.call_status = 'Received')::int AS received,
+             count(*) FILTER (WHERE m.call_status = 'Not received')::int AS not_received
+        FROM crm_communications m
+       WHERE ${Prisma.join(conds, ' AND ')}`);
+    return rows[0];
   }
 
   async leadRows({ personId, companyIds }: SalesReportScope): Promise<ReportLeadRow[]> {
