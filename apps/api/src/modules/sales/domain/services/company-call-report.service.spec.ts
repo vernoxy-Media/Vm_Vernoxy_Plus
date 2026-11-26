@@ -18,14 +18,14 @@ const call = (over: Partial<CompanyCallAttempt>): CompanyCallAttempt => ({
 });
 
 describe('buildCompanyCallRows', () => {
-  it('makes one row per company and counts every attempt', () => {
+  it('makes one row per company whose total is received plus not received', () => {
     const rows = buildCompanyCallRows([
       call({ communication_id: 1 }),
       call({ communication_id: 2, call_status: 'Not received', outcome: 'No response' }),
       call({ communication_id: 3, call_status: null }),
     ]);
     expect(rows).toHaveLength(1);
-    expect(rows[0]).toMatchObject({ total: 3, received: 1, not_received: 1 });
+    expect(rows[0]).toMatchObject({ total: 2, received: 1, not_received: 1 });
   });
 
   it('takes the outcome from the latest received call, and the date and remark from the latest attempt', () => {

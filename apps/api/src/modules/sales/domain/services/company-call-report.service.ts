@@ -72,14 +72,16 @@ export function buildCompanyCallRows(attempts: CompanyCallAttempt[]): CompanyCal
     const received = calls.filter((c) => c.call_status === 'Received');
     if (received.length === 0) continue;
     const last = calls[0];
+    const notReceived = calls.filter((c) => c.call_status === 'Not received').length;
     rows.push({
       key,
       company_id: last.company_id,
       company_name: last.company_name ?? 'No company',
       contact_person: last.company_contact?.trim() || calls.find((c) => c.call_contact?.trim())?.call_contact || null,
-      total: calls.length,
+      // A call saved with neither status is not counted, so the total always equals the two parts.
+      total: received.length + notReceived,
       received: received.length,
-      not_received: calls.filter((c) => c.call_status === 'Not received').length,
+      not_received: notReceived,
       latest_outcome: received[0].outcome,
       last_call_date: last.call_date,
       last_remark: last.remark,

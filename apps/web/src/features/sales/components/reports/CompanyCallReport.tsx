@@ -192,7 +192,7 @@ export const CompanyCallReport: React.FC<{ filters: SalesReportFilters; isAdmin:
         </div>
       )}
 
-      <CompanyCallHistoryModal company={openCompany} isAdmin={isAdmin} onClose={() => setOpenCompany(null)} />
+      <CompanyCallHistoryModal company={openCompany} filters={filters} isAdmin={isAdmin} onClose={() => setOpenCompany(null)} />
     </section>
   );
 };

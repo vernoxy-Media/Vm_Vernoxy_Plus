@@ -9,10 +9,12 @@ export interface SalesReportScope {
 }
 
 export interface SalesReportCallCounts {
-  /** Every call attempt. */
+  /** Always received + not_received. */
   total: number;
   received: number;
   not_received: number;
+  /** Saved calls with neither status. They are not part of the total. */
+  without_status: number;
 }
 
 export interface SalesReportCallScope {
@@ -39,8 +41,8 @@ export interface CompanyCallExcelPort {
 export interface SalesReportRepositoryPort {
   /** Every call attempt of the selection, whatever its status. */
   callAttempts(range: { from: Date | null; to: Date | null }, scope: SalesReportCallScope): Promise<CompanyCallAttempt[]>;
-  /** One company's calls from any date, newest first; with a personId, only that person's. */
-  companyCallHistory(companyId: number, personId?: number): Promise<CompanyCallAttempt[]>;
+  /** One company's calls within the selection, newest first. */
+  companyCallHistory(companyId: number, range: { from: Date | null; to: Date | null }, scope: SalesReportCallScope): Promise<CompanyCallAttempt[]>;
   /** Call attempts made in the period, optionally by one person and optionally only those logged inside one campaign. */
   callCounts(range: { from: Date | null; to: Date | null }, scope: SalesReportCallScope): Promise<SalesReportCallCounts>;
   /** The received calls of the same selection, counted by their saved outcome. */

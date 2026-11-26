@@ -42,9 +42,10 @@ export class PrismaSalesReportRepository implements SalesReportRepositoryPort {
 
   async callCounts(range: { from: Date | null; to: Date | null }, scope: SalesReportCallScope): Promise<SalesReportCallCounts> {
     const rows = await this.prisma.$queryRaw<SalesReportCallCounts[]>(Prisma.sql`
-      SELECT count(*)::int AS total,
+      SELECT count(*) FILTER (WHERE m.call_status IN ('Received', 'Not received'))::int AS total,
              count(*) FILTER (WHERE m.call_status = 'Received')::int AS received,
-             count(*) FILTER (WHERE m.call_status = 'Not received')::int AS not_received
+             count(*) FILTER (WHERE m.call_status = 'Not received')::int AS not_received,
+             count(*) FILTER (WHERE m.call_status IS NULL OR m.call_status NOT IN ('Received', 'Not received'))::int AS without_status
         FROM crm_communications m
        WHERE ${this.callWhere(range, scope)}`);
     return rows[0];
@@ -93,8 +94,8 @@ export class PrismaSalesReportRepository implements SalesReportRepositoryPort {
     return this.selectCalls(this.callWhere(range, scope));
   }
 
-  companyCallHistory(companyId: number, personId?: number): Promise<CompanyCallAttempt[]> {
-    const where = this.callWhere({ from: null, to: null }, { personId });
+  companyCallHistory(companyId: number, range: { from: Date | null; to: Date | null }, scope: SalesReportCallScope): Promise<CompanyCallAttempt[]> {
+    const where = this.callWhere(range, scope);
     return this.selectCalls(Prisma.sql`${where} AND co.company_id = ${companyId}`);
   }
 

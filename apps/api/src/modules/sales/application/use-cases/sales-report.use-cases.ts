@@ -54,9 +54,10 @@ export class SalesReportUseCases {
     };
   }
 
-  /** A company's complete call history: no date or campaign filter. A Sales User still sees only their own calls. */
-  async companyCallHistory(companyId: number, actor: SalesActor): Promise<{ items: CompanyCallAttempt[] }> {
-    return { items: await this.repo.companyCallHistory(companyId, actor.is_admin ? undefined : actor.emp_id) };
+  /** A company's call history under the same date, Sales User and campaign filters as the report. */
+  async companyCallHistory(query: SalesReportQuery, companyId: number, actor: SalesActor): Promise<{ items: CompanyCallAttempt[] }> {
+    const { period, personId, campaignId } = this.filters(query, actor);
+    return { items: await this.repo.companyCallHistory(companyId, period, { personId, campaignId }) };
   }
 
   async summary(query: SalesReportQuery, actor: SalesActor): Promise<SalesReportResult> {

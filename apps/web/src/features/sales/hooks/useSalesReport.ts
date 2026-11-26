@@ -83,10 +83,13 @@ export function useCompanyCalls(filters: SalesReportFilters, canChooseUser: bool
 export const companyCallExportUrl = (filters: SalesReportFilters, canChooseUser: boolean, view: CompanyCallView) =>
   `/api/v1/sales/reports/company-calls/export?${companyCallParams(filters, canChooseUser, view)}`;
 
-export function useCompanyCallHistory(companyId: number | null) {
+export function useCompanyCallHistory(filters: SalesReportFilters, canChooseUser: boolean, companyId: number | null) {
   return useQuery({
-    queryKey: ['/api/v1/sales/reports/company-calls/history', companyId],
-    queryFn: () => customFetch<{ items: CompanyCallHistoryItem[] }>(`/api/v1/sales/reports/company-calls/${companyId}/history`),
+    queryKey: ['/api/v1/sales/reports/company-calls/history', filters, canChooseUser, companyId],
+    queryFn: () =>
+      customFetch<{ items: CompanyCallHistoryItem[] }>(
+        `/api/v1/sales/reports/company-calls/${companyId}/history?${reportParams(filters, canChooseUser).toString()}`,
+      ),
     enabled: companyId !== null,
   });
 }

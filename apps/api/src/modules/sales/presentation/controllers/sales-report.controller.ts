@@ -92,10 +92,10 @@ export class SalesReportController {
   }
 
   @Get('company-calls/:companyId/history')
-  @ApiOperation({ summary: "A company's complete call history. A Sales User only sees their own calls." })
-  async companyCallHistory(@Param('companyId', ParseIntPipe) companyId: number, @CurrentSalesActor() actor: SalesActor) {
+  @ApiOperation({ summary: "A company's call history under the report filters. A Sales User only sees their own calls." })
+  async companyCallHistory(@Param('companyId', ParseIntPipe) companyId: number, @Query() query: SalesReportQueryDto, @CurrentSalesActor() actor: SalesActor) {
     try {
-      return await this.reports.companyCallHistory(companyId, actor);
+      return await this.reports.companyCallHistory(query, companyId, actor);
     } catch (err) {
       throw mapSalesErrorToHttpException(err);
     }

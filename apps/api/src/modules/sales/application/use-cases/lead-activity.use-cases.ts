@@ -107,18 +107,30 @@ export class LeadActivityUseCases {
    * not the lead's, and the write joins the caller's transaction so nothing is half saved.
    */
   async logForFollowUp(
-    a: { company_id: number; lead_id: number | null; contact_id: number; type: string; communication_date: Date; what_discussed: string; outcome: string; call_duration_seconds?: number | null },
+    a: {
+      company_id: number;
+      lead_id: number | null;
+      contact_id: number;
+      type: string;
+      communication_date: Date;
+      what_discussed: string;
+      outcome: string;
+      call_status?: string | null;
+      not_received_reason?: string | null;
+      call_duration_seconds?: number | null;
+    },
     actor: SalesActor,
     now: Date,
     tx: unknown,
   ): Promise<{ communication_id: number; status_change: TransitionResult | null }> {
-    // Completing a call follow-up records how long the call lasted
-    const errors = validateConversation(a, now, { requireOutcome: true, requireDuration: true });
+    // Completing a received call follow-up records how long the call lasted
+    const notReceived = isNotReceivedCall(a);
+    const errors = validateConversation(a, now, { requireOutcome: true, requireDuration: !notReceived });
     if (errors.length === 0 && !(await this.repo.isActiveContactOfCompany(a.company_id, a.contact_id))) {
       errors.push({ field: 'contact_id', message: 'Choose a contact who works at this company.' });
     }
     if (errors.length > 0) throw new FieldValidationError(errors);
-    const created = await this.repo.createCommunication({ ...a, actor_emp_id: actor.emp_id, next_follow_up: null }, tx);
+    const created = await this.repo.createCommunication({ ...a, counts_as_conversation: !notReceived, actor_emp_id: actor.emp_id, next_follow_up: null }, tx);
     return { communication_id: created.communication_id, status_change: created.status_change };
   }
 

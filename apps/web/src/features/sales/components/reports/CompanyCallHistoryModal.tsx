@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Modal } from '../common/Modal';
-import { useCompanyCallHistory, type CompanyCallRow } from '../../hooks/useSalesReport';
+import { useCompanyCallHistory, type CompanyCallRow, type SalesReportFilters } from '../../hooks/useSalesReport';
 import { parseApiError } from '../../utils/error';
 import { fmtDuration, secondaryBtn } from '../campaigns/campaign-ui';
 import { fmtCallDate } from './format';
@@ -9,12 +9,13 @@ import { fmtCallDate } from './format';
 interface Props {
   /** The chosen company, or null when the popup is closed. */
   company: CompanyCallRow | null;
+  filters: SalesReportFilters;
   isAdmin: boolean;
   onClose: () => void;
 }
 
-export const CompanyCallHistoryModal: React.FC<Props> = ({ company, isAdmin, onClose }) => {
-  const { data, isLoading, isError, error } = useCompanyCallHistory(company?.company_id ?? null);
+export const CompanyCallHistoryModal: React.FC<Props> = ({ company, filters, isAdmin, onClose }) => {
+  const { data, isLoading, isError, error } = useCompanyCallHistory(filters, isAdmin, company?.company_id ?? null);
   if (!company) return null;
   const calls = data?.items ?? [];
 
@@ -24,7 +25,7 @@ export const CompanyCallHistoryModal: React.FC<Props> = ({ company, isAdmin, onC
       onClose={onClose}
       size="4xl"
       title={`Call history: ${company.company_name}`}
-      subtitle={isAdmin ? 'All calls from every date. The report filters do not apply here.' : 'All your calls from every date. The report filters do not apply here.'}
+      subtitle={isAdmin ? 'Calls matching the selected date range, sales user and campaign.' : 'Your calls matching the selected date range and campaign.'}
       footer={
         <div className="flex w-full items-center justify-between gap-3">
           <Link to={`/sales/companies/${company.company_id}`} className="text-sm font-semibold text-blue-700 hover:underline">
