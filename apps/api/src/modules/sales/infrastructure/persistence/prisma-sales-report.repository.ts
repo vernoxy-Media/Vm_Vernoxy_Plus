@@ -1,7 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../../core/prisma/prisma.service';
-import { SalesReportCallCounts, SalesReportRepositoryPort, SalesReportScope } from'../../application/ports/sales-report.repository.port';
+import {
+  SalesReportCallCounts,
+  SalesReportCallRecord,
+  SalesReportCallScope,
+  SalesReportRepositoryPort,
+  SalesReportScope,
+} from '../../application/ports/sales-report.repository.port';
+import { OUTCOMES } from '../../domain/services/activity-validator.service';
 import { ReportExtras, ReportLeadRow } from '../../domain/services/sales-report.service';
 
 @Injectable()
@@ -17,10 +24,8 @@ export class PrismaSalesReportRepository implements SalesReportRepositoryPort {
     return rows.map((r) => r.company_id);
   }
 
-  async callCounts(
-    range: { from: Date | null; to: Date | null },
-    { personId, campaignId }: { personId?: number; campaignId?: number },
-  ): Promise<SalesReportCallCounts> {
+  /** The one definition of "a call that matches the filters", shared by the cards, the outcome counts and their records. */
+  private callWhere(range: { from: Date | null; to: Date | null }, { personId, campaignId }: SalesReportCallScope): Prisma.Sql {
     const conds: Prisma.Sql[] = [Prisma.sql`m.deleted_at IS NULL`, Prisma.sql`m.type = 'Call'`];
     if (range.from) conds.push(Prisma.sql`m.communication_date >= ${range.from}`);
     if (range.to) conds.push(Prisma.sql`m.communication_date <= ${range.to}`);
@@ -31,13 +36,42 @@ export class PrismaSalesReportRepository implements SalesReportRepositoryPort {
           JOIN crm_campaigns c ON c.campaign_id = k.campaign_id AND c.deleted_at IS NULL
          WHERE k.communication_id = m.communication_id AND k.campaign_id = ${campaignId} AND k.deleted_at IS NULL)`);
     }
+    return Prisma.join(conds, ' AND ');
+  }
+
+  async callCounts(range: { from: Date | null; to: Date | null }, scope: SalesReportCallScope): Promise<SalesReportCallCounts> {
     const rows = await this.prisma.$queryRaw<SalesReportCallCounts[]>(Prisma.sql`
       SELECT count(*)::int AS total,
              count(*) FILTER (WHERE m.call_status = 'Received')::int AS received,
              count(*) FILTER (WHERE m.call_status = 'Not received')::int AS not_received
         FROM crm_communications m
-       WHERE ${Prisma.join(conds, ' AND ')}`);
+       WHERE ${this.callWhere(range, scope)}`);
     return rows[0];
+  }
+
+  async receivedOutcomeCounts(range: { from: Date | null; to: Date | null }, scope: SalesReportCallScope) {
+    return this.prisma.$queryRaw<Array<{ outcome: string | null; count: number }>>(Prisma.sql`
+      SELECT m.outcome, count(*)::int AS count
+        FROM crm_communications m
+       WHERE ${this.callWhere(range, scope)} AND m.call_status = 'Received'
+       GROUP BY m.outcome`);
+  }
+
+  async receivedCalls(range: { from: Date | null; to: Date | null }, scope: SalesReportCallScope, outcome: string | null) {
+    // null asks for the calls whose outcome is empty or no longer on the list.
+    const match =
+      outcome === null
+        ? Prisma.sql`(m.outcome IS NULL OR m.outcome NOT IN (${Prisma.join([...OUTCOMES])}))`
+        : Prisma.sql`m.outcome = ${outcome}`;
+    return this.prisma.$queryRaw<SalesReportCallRecord[]>(Prisma.sql`
+      SELECT m.communication_id, co.company_id, COALESCE(co.name, l.company_name) AS company_name,
+             m.contact_person_name AS contact_person, m.communication_date AS call_date, m.what_discussed, e.name AS called_by
+        FROM crm_communications m
+        LEFT JOIN leads l ON l.lead_id = m.lead_id
+        LEFT JOIN companies co ON co.company_id = COALESCE(m.company_id, l.company_id)
+        LEFT JOIN employees e ON e.emp_id = m.created_by
+       WHERE ${this.callWhere(range, scope)} AND m.call_status = 'Received' AND ${match}
+       ORDER BY lower(COALESCE(co.name, l.company_name)), co.company_id, m.communication_date DESC`);
   }
 
   async leadRows({ personId, companyIds }: SalesReportScope): Promise<ReportLeadRow[]> {

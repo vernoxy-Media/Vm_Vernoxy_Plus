@@ -1,6 +1,8 @@
 import { Controller, Get, Query, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiPropertyOptional, ApiTags } from '@nestjs/swagger';
-import { IsOptional, Matches } from 'class-validator';
+import { ApiBearerAuth, ApiOperation, ApiProperty, ApiPropertyOptional, ApiTags } from '@nestjs/swagger';
+import { IsIn, IsOptional, Matches } from 'class-validator';
+import { OUTCOMES } from '../../domain/services/activity-validator.service';
+import { OUTCOME_NOT_RECORDED } from '../../application/use-cases/sales-report.use-cases';
 import { JwtAuthGuard } from '../../../auth/public-api';
 import { SalesAccessGuard } from '../guards/sales-access.guard';
 import { CurrentSalesActor } from '../guards/sales-actor.decorator';
@@ -24,6 +26,11 @@ export class SalesReportQueryDto {
   @IsOptional() @Matches(/^(all|[1-9]\d{0,8})$/, { message: 'campaign_id must be "all" or a campaign id' }) campaign_id?: string;
 }
 
+export class SalesReportCallsQueryDto extends SalesReportQueryDto {
+  @ApiProperty({ enum: [...OUTCOMES, OUTCOME_NOT_RECORDED] })
+  @IsIn([...OUTCOMES, OUTCOME_NOT_RECORDED], { message: 'Choose a call outcome from the list.' }) outcome!: string;
+}
+
 /** Sales Reports: pipeline, conversion, sources, people and lost reasons. */
 @ApiTags('Sales - Reports')
 @ApiBearerAuth()
@@ -37,6 +44,16 @@ export class SalesReportController {
   async summary(@Query() query: SalesReportQueryDto, @CurrentSalesActor() actor: SalesActor) {
     try {
       return await this.reports.summary(query, actor);
+    } catch (err) {
+      throw mapSalesErrorToHttpException(err);
+    }
+  }
+
+  @Get('received-calls')
+  @ApiOperation({ summary: 'The received calls behind one outcome of the report, ordered by company. Takes the same filters as the summary.' })
+  async receivedCalls(@Query() query: SalesReportCallsQueryDto, @CurrentSalesActor() actor: SalesActor) {
+    try {
+      return await this.reports.receivedCalls(query, query.outcome, actor);
     } catch (err) {
       throw mapSalesErrorToHttpException(err);
     }

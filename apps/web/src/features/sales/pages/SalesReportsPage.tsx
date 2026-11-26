@@ -22,6 +22,7 @@ import { useEmployeeOptionsQuery } from '@/features/organization/hooks/use-organ
 import { SearchableSelect } from '../components/common/SearchableSelect';
 import { useSalesRights } from '../hooks/useSalesRights';
 import { useCampaignList } from '../hooks/useCampaigns';
+import { ReceivedCallsModal } from '../components/reports/ReceivedCallsModal';
 import { useSalesReport, type SalesReportFilters } from '../hooks/useSalesReport';
 import type { SalesReportCountRow, SalesReportResponse } from '../types/sales.types';
 
@@ -157,6 +158,10 @@ function downloadCsv(report: SalesReportResponse, salesUser: string, campaign: s
   add('Calls received', report.calls.received);
   add('Calls not received', report.calls.not_received);
   lines.push('');
+  add('Received call outcome', 'Calls');
+  report.received_outcomes.forEach((o) => add(o.outcome, o.count));
+  add('Total received calls', report.calls.received);
+  lines.push('');
   add('Totals');
   Object.entries(report.totals).forEach(([k, v]) => add(k.replace(/_/g, ' '), v));
   lines.push('');
@@ -197,6 +202,7 @@ export const SalesReportsPage: React.FC = () => {
   const [leadBy, setLeadBy] = useState('all');
 
   const [campaignId, setCampaignId] = useState('all');
+  const [openOutcome, setOpenOutcome] = useState<string | null>(null);
 
   const filters: SalesReportFilters = { from: range.from, to: range.to, leadBy, campaignId };
   const { data: report, isLoading, isError, isFetching, refetch } = useSalesReport(filters, isAdmin);
@@ -338,6 +344,49 @@ export const SalesReportsPage: React.FC = () => {
             <StatCard label="Companies" value={t.companies} hint={campaignId === 'all' ? 'In the database today' : 'In this campaign'} icon={Building2} tone="text-slate-900" tile="bg-blue-50 text-blue-600 ring-blue-100" bar="from-blue-500 to-indigo-500" />
           </div>
 
+          <Panel title="Received Calls – Outcome Breakdown" hint="Only received calls. Click a count to see the company-wise records." icon={<PhoneCall className="h-4 w-4" />}>
+            {calls.received === 0 ? (
+              <Empty text="No received calls for these filters." />
+            ) : (
+              <table className="w-full table-fixed text-left text-sm">
+                <thead>
+                  <tr className="border-b border-slate-100 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">
+                    <th className="w-2/5 py-2 pr-3 sm:w-1/4">Call outcome</th>
+                    <th className="px-3 py-2">Share</th>
+                    <th className="w-24 py-2 pl-3 text-right">Total calls</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {report.received_outcomes.map((o) => (
+                    <tr key={o.outcome}>
+                      <td className="py-2 pr-3 font-medium text-slate-800">{o.outcome}</td>
+                      <td className="px-3 py-2">
+                        <div className="h-2.5 overflow-hidden rounded-full bg-slate-100">
+                          <div className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-emerald-600" style={{ width: `${(o.count / calls.received) * 100}%` }} />
+                        </div>
+                      </td>
+                      <td className="py-2 pl-3 text-right">
+                        {o.count > 0 ? (
+                          <button type="button" onClick={() => setOpenOutcome(o.outcome)} aria-label={`Show ${o.count} ${o.outcome} calls`} className="cursor-pointer rounded-md px-2 py-0.5 font-bold text-blue-700 underline-offset-2 hover:bg-blue-50 hover:underline">
+                            {o.count}
+                          </button>
+                        ) : (
+                          <span className="px-2 font-semibold text-slate-400">0</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="border-t-2 border-slate-200 font-bold text-slate-900">
+                    <td className="py-2.5 pr-3" colSpan={2}>Total received calls</td>
+                    <td className="py-2.5 pl-3 pr-2 text-right">{calls.received}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            )}
+          </Panel>
+
           <div className="grid gap-5 lg:grid-cols-2">
             {/* Pipeline */}
             <Panel title="Pipeline by status" hint="Where the leads are right now" icon={<Layers className="h-4 w-4" />}>
@@ -437,6 +486,8 @@ export const SalesReportsPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      <ReceivedCallsModal outcome={openOutcome} filters={filters} canChooseUser={isAdmin} onClose={() => setOpenOutcome(null)} />
     </div>
   );
 };
