@@ -9,6 +9,8 @@ export interface SalesReportFilters {
   to: string;
   /** "all", "me" or an employee id. Only the Admin can narrow it; for a Sales User the server always uses their own leads. */
   leadBy: string;
+  /** "all" or a campaign id. */
+  campaignId: string;
 }
 
 export function useSalesReport(filters: SalesReportFilters, canChooseUser: boolean) {
@@ -19,6 +21,7 @@ export function useSalesReport(filters: SalesReportFilters, canChooseUser: boole
       if (filters.from) q.set('from', filters.from);
       if (filters.to) q.set('to', filters.to);
       if (canChooseUser && filters.leadBy !== 'all') q.set('lead_by', filters.leadBy);
+      if (filters.campaignId !== 'all') q.set('campaign_id', filters.campaignId);
       const qs = q.toString();
       return customFetch<SalesReportResponse>(`/api/v1/sales/reports/summary${qs ? `?${qs}` : ''}`);
     },

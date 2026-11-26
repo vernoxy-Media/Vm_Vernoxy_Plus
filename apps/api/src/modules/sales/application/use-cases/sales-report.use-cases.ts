@@ -10,6 +10,8 @@ export interface SalesReportQuery {
   to?: string;
   /** "me", "all" or an employee id. A Sales User always gets their own leads whatever is asked. */
   lead_by?: string;
+  /** "all" or a campaign id. Narrows the report to the companies in that campaign. */
+  campaign_id?: string;
 }
 
 /** The Sales Reports page: the Admin sees every lead, a Sales User sees only their own. */
@@ -29,7 +31,11 @@ export class SalesReportUseCases {
       from: query.from ? istDayBoundary(query.from, 'start') : null,
       to: query.to ? istDayBoundary(query.to, 'end') : null,
     };
-    const [rows, extras] = await Promise.all([this.repo.leadRows(personId), this.repo.extras(period, personId)]);
+    // A campaign has no leads of its own: it reaches them through the companies added to it.
+    const companyIds =
+      query.campaign_id && query.campaign_id !== 'all' ? await this.repo.campaignCompanyIds(Number(query.campaign_id)) : undefined;
+    const scope = { personId, companyIds };
+    const [rows, extras] = await Promise.all([this.repo.leadRows(scope), this.repo.extras(period, scope)]);
     return buildSalesReport(rows, period, extras);
   }
 }

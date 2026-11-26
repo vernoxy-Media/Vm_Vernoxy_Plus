@@ -18,6 +18,7 @@ import { StatCard, Field, inputCls } from '@/features/complaint/components/compl
 import { useEmployeeOptionsQuery } from '@/features/organization/hooks/use-organization';
 import { SearchableSelect } from '../components/common/SearchableSelect';
 import { useSalesRights } from '../hooks/useSalesRights';
+import { useCampaignList } from '../hooks/useCampaigns';
 import { useSalesReport, type SalesReportFilters } from '../hooks/useSalesReport';
 import type { SalesReportCountRow, SalesReportResponse } from '../types/sales.types';
 
@@ -140,11 +141,13 @@ const GroupTable: React.FC<{ rows: SalesReportCountRow[]; firstHeader: string; l
   );
 };
 
-function downloadCsv(report: SalesReportResponse) {
+function downloadCsv(report: SalesReportResponse, salesUser: string, campaign: string) {
   const q = (v: string | number | null) => `"${String(v ?? '').replace(/"/g, '""')}"`;
   const lines: string[] = [];
   const add = (...cells: Array<string | number | null>) => lines.push(cells.map(q).join(','));
   add('Sales report', `${report.period.from ?? 'start'} to ${report.period.to ?? 'today'}`);
+  add('Sales user', salesUser);
+  add('Campaign', campaign);
   lines.push('');
   add('Totals');
   Object.entries(report.totals).forEach(([k, v]) => add(k.replace(/_/g, ' '), v));
@@ -185,9 +188,17 @@ export const SalesReportsPage: React.FC = () => {
   const [range, setRange] = useState(() => presetRange('this_year'));
   const [leadBy, setLeadBy] = useState('all');
 
-  const filters: SalesReportFilters = { from: range.from, to: range.to, leadBy };
+  const [campaignId, setCampaignId] = useState('all');
+
+  const filters: SalesReportFilters = { from: range.from, to: range.to, leadBy, campaignId };
   const { data: report, isLoading, isError, isFetching, refetch } = useSalesReport(filters, isAdmin);
   const { data: employees = [] } = useEmployeeOptionsQuery();
+  // The server gives the Admin every campaign, and a Sales User only the ones they have companies in.
+  const { data: campaignList } = useCampaignList({ limit: 100 });
+  const campaignOptions = (campaignList?.items ?? []).map((c) => ({ value: String(c.campaign_id), label: c.name }));
+  const userOptions = [{ value: 'me', label: 'Only me' }, ...employees.map((emp: { emp_id: number; name: string }) => ({ value: String(emp.emp_id), label: emp.name }))];
+  const salesUserName = isAdmin ? (userOptions.find((o) => o.value === leadBy)?.label ?? 'All Users') : 'Only me';
+  const campaignName = campaignOptions.find((o) => o.value === campaignId)?.label ?? 'All Campaigns';
 
   const choosePreset = (id: Exclude<PresetId, 'custom'>) => {
     setPreset(id);
@@ -219,7 +230,7 @@ export const SalesReportsPage: React.FC = () => {
         <button
           type="button"
           disabled={!report}
-          onClick={() => report && downloadCsv(report)}
+          onClick={() => report && downloadCsv(report, salesUserName, campaignName)}
           className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 self-start rounded-xl bg-blue-600 px-4 text-[13px] font-semibold text-white shadow-sm shadow-blue-600/25 transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 sm:self-auto"
         >
           <Download className="h-4 w-4" />
@@ -246,7 +257,7 @@ export const SalesReportsPage: React.FC = () => {
           </div>
         </div>
 
-        <div className={`mt-4 grid grid-cols-1 gap-4 min-[480px]:grid-cols-2 ${isAdmin ? 'lg:grid-cols-3' : 'lg:grid-cols-2'}`}>
+        <div className={`mt-4 grid grid-cols-1 gap-4 min-[480px]:grid-cols-2 ${isAdmin ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}`}>
           <Field label="From">
             <input type="date" value={range.from} max={range.to || undefined} onChange={(e) => setDate('from', e.target.value)} className={inputCls} />
           </Field>
@@ -254,19 +265,29 @@ export const SalesReportsPage: React.FC = () => {
             <input type="date" value={range.to} min={range.from || undefined} onChange={(e) => setDate('to', e.target.value)} className={inputCls} />
           </Field>
           {isAdmin && (
-            <Field label="Lead by">
+            <Field label="Sales User">
               <SearchableSelect
-                ariaLabel="Lead by"
+                ariaLabel="Sales User"
                 value={leadBy === 'all' ? '' : leadBy}
                 onChange={(v) => setLeadBy(v || 'all')}
-                placeholder="Everyone"
-                options={[{ value: 'me', label: 'Only me' }, ...employees.map((emp: { emp_id: number; name: string }) => ({ value: String(emp.emp_id), label: emp.name }))]}
+                placeholder="All Users"
+                options={userOptions}
               />
             </Field>
           )}
+          <Field label="Campaign">
+            <SearchableSelect
+              ariaLabel="Campaign"
+              value={campaignId === 'all' ? '' : campaignId}
+              onChange={(v) => setCampaignId(v || 'all')}
+              placeholder="All Campaigns"
+              options={campaignOptions}
+            />
+          </Field>
         </div>
         <p className="mt-3 text-xs text-slate-400">
           The figures count the leads <b className="font-semibold text-slate-500">added</b> in this period{report ? ` (${periodText})` : ''}. The trend always shows six months.
+          {campaignId !== 'all' && ' A campaign includes all leads of the companies added to it.'}
         </p>
       </div>
 
@@ -296,7 +317,7 @@ export const SalesReportsPage: React.FC = () => {
             <StatCard label="Conversion rate" value={`${t.conversion_rate}%`} hint="Converted out of all leads" icon={TrendingUp} tone="text-emerald-600" tile="bg-emerald-50 text-emerald-600 ring-emerald-100" bar="from-emerald-400 to-teal-400" />
             <StatCard label="Avg days to convert" value={t.avg_days_to_convert ?? '—'} unit={t.avg_days_to_convert === null ? undefined : 'days'} hint="From lead added to won" icon={Timer} tone="text-slate-900" tile="bg-slate-50 text-slate-600 ring-slate-100" bar="from-slate-400 to-slate-500" />
             <StatCard label="Overdue follow-ups" value={t.overdue_follow_ups} hint="Right now, not only in this period" icon={AlertTriangle} tone={t.overdue_follow_ups > 0 ? 'text-rose-600' : 'text-slate-900'} tile="bg-amber-50 text-amber-600 ring-amber-100" bar="from-amber-400 to-orange-400" />
-            <StatCard label="Companies" value={t.companies} hint="In the database today" icon={Building2} tone="text-slate-900" tile="bg-blue-50 text-blue-600 ring-blue-100" bar="from-blue-500 to-indigo-500" />
+            <StatCard label="Companies" value={t.companies} hint={campaignId === 'all' ? 'In the database today' : 'In this campaign'} icon={Building2} tone="text-slate-900" tile="bg-blue-50 text-blue-600 ring-blue-100" bar="from-blue-500 to-indigo-500" />
           </div>
 
           <div className="grid gap-5 lg:grid-cols-2">

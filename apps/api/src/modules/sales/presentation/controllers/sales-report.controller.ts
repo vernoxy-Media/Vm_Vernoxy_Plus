@@ -19,6 +19,9 @@ export class SalesReportQueryDto {
 
   @ApiPropertyOptional({ example: 'all', description: '"me", "all" or an employee id. Only the Admin can look at other people.' })
   @IsOptional() @Matches(/^(me|all|\d+)$/, { message: 'lead_by must be "me", "all" or an employee id' }) lead_by?: string;
+
+  @ApiPropertyOptional({ example: '3', description: '"all" or a campaign id: only the leads of the companies in that campaign' })
+  @IsOptional() @Matches(/^(all|[1-9]\d{0,8})$/, { message: 'campaign_id must be "all" or a campaign id' }) campaign_id?: string;
 }
 
 /** Sales Reports: pipeline, conversion, sources, people and lost reasons. */
