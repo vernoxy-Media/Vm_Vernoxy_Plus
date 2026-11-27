@@ -13,11 +13,17 @@ import {
   Loader2,
   PauseCircle,
   Inbox,
+  Phone,
+  PhoneCall,
+  PhoneMissed,
 } from 'lucide-react';
 import { StatCard, Field, inputCls } from '@/features/complaint/components/complaint-ui';
 import { useEmployeeOptionsQuery } from '@/features/organization/hooks/use-organization';
 import { SearchableSelect } from '../components/common/SearchableSelect';
 import { useSalesRights } from '../hooks/useSalesRights';
+import { useCampaignList } from '../hooks/useCampaigns';
+import { ReceivedCallsModal } from '../components/reports/ReceivedCallsModal';
+import { CompanyCallReport } from '../components/reports/CompanyCallReport';
 import { useSalesReport, type SalesReportFilters } from '../hooks/useSalesReport';
 import type { SalesReportCountRow, SalesReportResponse } from '../types/sales.types';
 
@@ -140,11 +146,22 @@ const GroupTable: React.FC<{ rows: SalesReportCountRow[]; firstHeader: string; l
   );
 };
 
-function downloadCsv(report: SalesReportResponse) {
+function downloadCsv(report: SalesReportResponse, salesUser: string, campaign: string) {
   const q = (v: string | number | null) => `"${String(v ?? '').replace(/"/g, '""')}"`;
   const lines: string[] = [];
   const add = (...cells: Array<string | number | null>) => lines.push(cells.map(q).join(','));
   add('Sales report', `${report.period.from ?? 'start'} to ${report.period.to ?? 'today'}`);
+  add('Sales user', salesUser);
+  add('Campaign', campaign);
+  lines.push('');
+  add('Calling performance');
+  add('Total calls made', report.calls.total);
+  add('Calls received', report.calls.received);
+  add('Calls not received', report.calls.not_received);
+  lines.push('');
+  add('Received call outcome', 'Calls');
+  report.received_outcomes.forEach((o) => add(o.outcome, o.count));
+  add('Total received calls', report.calls.received);
   lines.push('');
   add('Totals');
   Object.entries(report.totals).forEach(([k, v]) => add(k.replace(/_/g, ' '), v));
@@ -185,9 +202,18 @@ export const SalesReportsPage: React.FC = () => {
   const [range, setRange] = useState(() => presetRange('this_year'));
   const [leadBy, setLeadBy] = useState('all');
 
-  const filters: SalesReportFilters = { from: range.from, to: range.to, leadBy };
+  const [campaignId, setCampaignId] = useState('all');
+  const [openOutcome, setOpenOutcome] = useState<string | null>(null);
+
+  const filters: SalesReportFilters = { from: range.from, to: range.to, leadBy, campaignId };
   const { data: report, isLoading, isError, isFetching, refetch } = useSalesReport(filters, isAdmin);
   const { data: employees = [] } = useEmployeeOptionsQuery();
+  // The server gives the Admin every campaign, and a Sales User only the ones they have companies in.
+  const { data: campaignList } = useCampaignList({ limit: 100 });
+  const campaignOptions = (campaignList?.items ?? []).map((c) => ({ value: String(c.campaign_id), label: c.name }));
+  const userOptions = [{ value: 'me', label: 'Only me' }, ...employees.map((emp: { emp_id: number; name: string }) => ({ value: String(emp.emp_id), label: emp.name }))];
+  const salesUserName = isAdmin ? (userOptions.find((o) => o.value === leadBy)?.label ?? 'All Users') : 'Only me';
+  const campaignName = campaignOptions.find((o) => o.value === campaignId)?.label ?? 'All Campaigns';
 
   const choosePreset = (id: Exclude<PresetId, 'custom'>) => {
     setPreset(id);
@@ -199,6 +225,8 @@ export const SalesReportsPage: React.FC = () => {
   };
 
   const t = report?.totals;
+  const calls = report?.calls;
+  const callsWithoutStatus = calls?.without_status ?? 0;
   const stageMax = Math.max(1, ...(report?.by_stage.map((s) => s.count) ?? [1]));
   const trendMax = Math.max(1, ...(report?.trend.flatMap((m) => [m.created, m.converted]) ?? [1]));
   const periodText = report ? `${report.period.from ?? 'the beginning'} to ${report.period.to ?? 'today'}` : '';
@@ -219,7 +247,7 @@ export const SalesReportsPage: React.FC = () => {
         <button
           type="button"
           disabled={!report}
-          onClick={() => report && downloadCsv(report)}
+          onClick={() => report && downloadCsv(report, salesUserName, campaignName)}
           className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 self-start rounded-xl bg-blue-600 px-4 text-[13px] font-semibold text-white shadow-sm shadow-blue-600/25 transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 sm:self-auto"
         >
           <Download className="h-4 w-4" />
@@ -246,7 +274,7 @@ export const SalesReportsPage: React.FC = () => {
           </div>
         </div>
 
-        <div className={`mt-4 grid grid-cols-1 gap-4 min-[480px]:grid-cols-2 ${isAdmin ? 'lg:grid-cols-3' : 'lg:grid-cols-2'}`}>
+        <div className={`mt-4 grid grid-cols-1 gap-4 min-[480px]:grid-cols-2 ${isAdmin ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}`}>
           <Field label="From">
             <input type="date" value={range.from} max={range.to || undefined} onChange={(e) => setDate('from', e.target.value)} className={inputCls} />
           </Field>
@@ -254,19 +282,29 @@ export const SalesReportsPage: React.FC = () => {
             <input type="date" value={range.to} min={range.from || undefined} onChange={(e) => setDate('to', e.target.value)} className={inputCls} />
           </Field>
           {isAdmin && (
-            <Field label="Lead by">
+            <Field label="Sales User">
               <SearchableSelect
-                ariaLabel="Lead by"
+                ariaLabel="Sales User"
                 value={leadBy === 'all' ? '' : leadBy}
                 onChange={(v) => setLeadBy(v || 'all')}
-                placeholder="Everyone"
-                options={[{ value: 'me', label: 'Only me' }, ...employees.map((emp: { emp_id: number; name: string }) => ({ value: String(emp.emp_id), label: emp.name }))]}
+                placeholder="All Users"
+                options={userOptions}
               />
             </Field>
           )}
+          <Field label="Campaign">
+            <SearchableSelect
+              ariaLabel="Campaign"
+              value={campaignId === 'all' ? '' : campaignId}
+              onChange={(v) => setCampaignId(v || 'all')}
+              placeholder="All Campaigns"
+              options={campaignOptions}
+            />
+          </Field>
         </div>
         <p className="mt-3 text-xs text-slate-400">
           The figures count the leads <b className="font-semibold text-slate-500">added</b> in this period{report ? ` (${periodText})` : ''}. The trend always shows six months.
+          {campaignId !== 'all' && ' A campaign includes all leads of the companies added to it.'}
         </p>
       </div>
 
@@ -275,7 +313,7 @@ export const SalesReportsPage: React.FC = () => {
           <Loader2 className="h-7 w-7 animate-spin text-blue-600" />
           <p className="text-sm font-medium text-slate-500">Building the report...</p>
         </div>
-      ) : isError || !report || !t ? (
+      ) : isError || !report || !t || !calls ? (
         <div className="rounded-2xl border border-slate-200 bg-white px-4 py-16 text-center">
           <span className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-50 text-rose-500 ring-1 ring-rose-100">
             <AlertTriangle className="h-7 w-7" />
@@ -287,6 +325,14 @@ export const SalesReportsPage: React.FC = () => {
         </div>
       ) : (
         <div className={`space-y-5 transition-opacity ${isFetching ? 'opacity-70' : ''}`}>
+          <section aria-label="Calling performance">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:gap-4">
+              <StatCard label="Total calls made" value={calls.total} hint={callsWithoutStatus > 0 ? `Received + not received. ${callsWithoutStatus} with no status not counted` : 'Received + not received'} icon={Phone} tone="text-slate-900" tile="bg-blue-50 text-blue-600 ring-blue-100" bar="from-blue-500 to-indigo-500" />
+              <StatCard label="Calls received" value={calls.received} hint="Received / connected" icon={PhoneCall} tone="text-emerald-600" tile="bg-emerald-50 text-emerald-600 ring-emerald-100" bar="from-emerald-400 to-teal-400" />
+              <StatCard label="Calls not received" value={calls.not_received} hint="Not received / not connected" icon={PhoneMissed} tone="text-rose-600" tile="bg-rose-50 text-rose-600 ring-rose-100" bar="from-rose-500 to-pink-500" />
+            </div>
+          </section>
+
           {/* Totals */}
           <div className="grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 lg:grid-cols-4 lg:gap-4">
             <StatCard label="Leads" value={t.leads} hint={`${t.companies_in_period} companies added in this period`} icon={Layers} tone="text-slate-900" tile="bg-blue-50 text-blue-600 ring-blue-100" bar="from-blue-500 to-indigo-500" />
@@ -296,8 +342,53 @@ export const SalesReportsPage: React.FC = () => {
             <StatCard label="Conversion rate" value={`${t.conversion_rate}%`} hint="Converted out of all leads" icon={TrendingUp} tone="text-emerald-600" tile="bg-emerald-50 text-emerald-600 ring-emerald-100" bar="from-emerald-400 to-teal-400" />
             <StatCard label="Avg days to convert" value={t.avg_days_to_convert ?? '—'} unit={t.avg_days_to_convert === null ? undefined : 'days'} hint="From lead added to won" icon={Timer} tone="text-slate-900" tile="bg-slate-50 text-slate-600 ring-slate-100" bar="from-slate-400 to-slate-500" />
             <StatCard label="Overdue follow-ups" value={t.overdue_follow_ups} hint="Right now, not only in this period" icon={AlertTriangle} tone={t.overdue_follow_ups > 0 ? 'text-rose-600' : 'text-slate-900'} tile="bg-amber-50 text-amber-600 ring-amber-100" bar="from-amber-400 to-orange-400" />
-            <StatCard label="Companies" value={t.companies} hint="In the database today" icon={Building2} tone="text-slate-900" tile="bg-blue-50 text-blue-600 ring-blue-100" bar="from-blue-500 to-indigo-500" />
+            <StatCard label="Companies" value={t.companies} hint={campaignId === 'all' ? 'In the database today' : 'In this campaign'} icon={Building2} tone="text-slate-900" tile="bg-blue-50 text-blue-600 ring-blue-100" bar="from-blue-500 to-indigo-500" />
           </div>
+
+          <Panel title="Received Calls – Outcome Breakdown" hint="Only received calls. Click a count to see the company-wise records." icon={<PhoneCall className="h-4 w-4" />}>
+            {calls.received === 0 ? (
+              <Empty text="No received calls for these filters." />
+            ) : (
+              <table className="w-full table-fixed text-left text-sm">
+                <thead>
+                  <tr className="border-b border-slate-100 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">
+                    <th className="w-2/5 py-2 pr-3 sm:w-1/4">Call outcome</th>
+                    <th className="px-3 py-2">Share</th>
+                    <th className="w-24 py-2 pl-3 text-right">Total calls</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {report.received_outcomes.map((o) => (
+                    <tr key={o.outcome}>
+                      <td className="py-2 pr-3 font-medium text-slate-800">{o.outcome}</td>
+                      <td className="px-3 py-2">
+                        <div className="h-2.5 overflow-hidden rounded-full bg-slate-100">
+                          <div className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-emerald-600" style={{ width: `${(o.count / calls.received) * 100}%` }} />
+                        </div>
+                      </td>
+                      <td className="py-2 pl-3 text-right">
+                        {o.count > 0 ? (
+                          <button type="button" onClick={() => setOpenOutcome(o.outcome)} aria-label={`Show ${o.count} ${o.outcome} calls`} className="cursor-pointer rounded-md px-2 py-0.5 font-bold text-blue-700 underline-offset-2 hover:bg-blue-50 hover:underline">
+                            {o.count}
+                          </button>
+                        ) : (
+                          <span className="px-2 font-semibold text-slate-400">0</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="border-t-2 border-slate-200 font-bold text-slate-900">
+                    <td className="py-2.5 pr-3" colSpan={2}>Total received calls</td>
+                    <td className="py-2.5 pl-3 pr-2 text-right">{calls.received}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            )}
+          </Panel>
+
+          <CompanyCallReport filters={filters} isAdmin={isAdmin} />
 
           <div className="grid gap-5 lg:grid-cols-2">
             {/* Pipeline */}
@@ -398,6 +489,8 @@ export const SalesReportsPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      <ReceivedCallsModal outcome={openOutcome} filters={filters} canChooseUser={isAdmin} onClose={() => setOpenOutcome(null)} />
     </div>
   );
 };

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   
   
@@ -14,7 +14,7 @@ import {
   
 } from 'lucide-react';
 import { CallDurationInput, EMPTY_DURATION, durationError, durationSeconds, type DurationValue } from '../common/CallDurationInput';
-import { ConversationBodyDtoOutcome, useSalesFollowUpControllerComplete } from '@vernoxy-pulse/api-client';
+import { ConversationBodyDtoOutcome, customFetch, useSalesFollowUpControllerComplete } from '@vernoxy-pulse/api-client';
 
 import { Modal } from '../common/Modal';
 import { istInputToIso, toInputDateTimeIST } from '../../utils/date';
@@ -41,6 +41,8 @@ export const CompleteFollowUpModal: React.FC<CompleteFollowUpModalProps> = ({
   const queryClient = useQueryClient();
 
   const [outcome, setOutcome] = useState('');
+  const [callStatus, setCallStatus] = useState<'Received' | 'Not received' | ''>('');
+  const [notReceivedReason, setNotReceivedReason] = useState('');
   const [whatHappened, setWhatHappened] = useState('');
   const [duration, setDuration] = useState<DurationValue>(EMPTY_DURATION);
   const [nextAction, setNextAction] = useState<NextStepAction>('schedule');
@@ -72,21 +74,39 @@ export const CompleteFollowUpModal: React.FC<CompleteFollowUpModalProps> = ({
 
   const completeMutation = useSalesFollowUpControllerComplete();
 
+  const { data: reasons = [] } = useQuery({
+    queryKey: ['lookups', 'call_not_received_reason'],
+    queryFn: () => customFetch<Array<{ id: number; label: string }>>('/api/v1/lookups/options?type=call_not_received_reason'),
+    enabled: isOpen && followUp?.type === 'Call',
+    staleTime: 5 * 60_000,
+  });
+
   if (!followUp) return null;
+
+  const isCall = followUp.type === 'Call';
+  const notReceived = isCall && callStatus === 'Not received';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
 
-    if (!outcome) {
+    if (isCall && !callStatus) {
+      setErrorMessage('Was the call received or not?');
+      return;
+    }
+    if (notReceived && !notReceivedReason) {
+      setErrorMessage('Please pick why the call was not received');
+      return;
+    }
+    if (!notReceived && !outcome) {
       setErrorMessage('Please choose the outcome of this follow-up');
       return;
     }
-    if (!whatHappened.trim()) {
+    if (!notReceived && !whatHappened.trim()) {
       setErrorMessage('Please describe what happened during this follow-up');
       return;
     }
-    if (followUp.type === 'Call') {
+    if (isCall && !notReceived) {
       const de = durationError(duration);
       if (de) {
         setErrorMessage(de);
@@ -148,11 +168,13 @@ export const CompleteFollowUpModal: React.FC<CompleteFollowUpModalProps> = ({
       await completeMutation.mutateAsync({
         id: followUp.id,
         data: {
-          outcome: outcome as never,
-          what_happened: whatHappened.trim(),
-          ...(followUp.type === 'Call' ? { call_duration_seconds: durationSeconds(duration) as number } : {}),
+          ...(notReceived
+            ? { not_received_reason: notReceivedReason, ...(whatHappened.trim() ? { what_happened: whatHappened.trim() } : {}) }
+            : { outcome: outcome as never, what_happened: whatHappened.trim() }),
+          ...(isCall ? { call_status: callStatus } : {}),
+          ...(isCall && !notReceived ? { call_duration_seconds: durationSeconds(duration) as number } : {}),
           next_step: nextStepPayload as never,
-        },
+        } as never,
       });
 
       queryClient.invalidateQueries({ queryKey: ['/api/v1/sales/follow-ups'] });
@@ -189,11 +211,61 @@ export const CompleteFollowUpModal: React.FC<CompleteFollowUpModalProps> = ({
           </div>
         )}
 
-        {/* A call: how long it lasted */}
-        {followUp.type === 'Call' && <CallDurationInput value={duration} onChange={setDuration} />}
+        {/* A call: received or not */}
+        {isCall && (
+          <div>
+            <p className="block text-xs font-semibold text-gray-700 mb-1">
+              Was the call received? <span className="text-red-500">*</span>
+            </p>
+            <div role="radiogroup" aria-label="Call status" className="grid grid-cols-2 gap-2">
+              {(['Received', 'Not received'] as const).map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  role="radio"
+                  aria-checked={callStatus === s}
+                  onClick={() => setCallStatus(s)}
+                  className={`min-h-[44px] rounded-lg border px-3 py-2 text-sm font-semibold transition ${
+                    callStatus !== s
+                      ? 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
+                      : s === 'Received'
+                        ? 'border-emerald-500 bg-emerald-50 text-emerald-700 ring-2 ring-emerald-500/20'
+                        : 'border-rose-500 bg-rose-50 text-rose-700 ring-2 ring-rose-500/20'
+                  }`}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
-        {/* Outcome */}
-        <div>
+        {/* A received call: how long it lasted */}
+        {isCall && callStatus === 'Received' && <CallDurationInput value={duration} onChange={setDuration} />}
+
+        {/* Not received: the reason */}
+        {notReceived && (
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 mb-1">
+              Reason <span className="text-red-500">*</span>
+            </label>
+            <select
+              value={notReceivedReason}
+              onChange={(e) => setNotReceivedReason(e.target.value)}
+              className="w-full px-3.5 py-2 text-sm rounded-lg border border-gray-300 bg-white focus:outline-hidden focus:ring-2 focus:ring-primary/20 focus:border-primary min-h-[44px]"
+            >
+              <option value="">Select a reason...</option>
+              {reasons.map((r) => (
+                <option key={r.id} value={r.label}>
+                  {r.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {/* Outcome: a call nobody picked up has none to choose */}
+        <div className={notReceived ? 'hidden' : undefined}>
           <label className="block text-xs font-semibold text-gray-700 mb-1">
             Outcome Status <span className="text-red-500">*</span>
           </label>
@@ -214,7 +286,7 @@ export const CompleteFollowUpModal: React.FC<CompleteFollowUpModalProps> = ({
         {/* What Happened (Saved as conversation) */}
         <div>
           <label className="block text-xs font-semibold text-gray-700 mb-1">
-            What Happened / Discussion Summary <span className="text-red-500">*</span>
+            {notReceived ? 'Note (optional)' : <>What Happened / Discussion Summary <span className="text-red-500">*</span></>}
           </label>
           <textarea
             value={whatHappened}
@@ -359,7 +431,7 @@ export const CompleteFollowUpModal: React.FC<CompleteFollowUpModalProps> = ({
           </button>
           <button
             type="submit"
-            disabled={completeMutation.isPending || !whatHappened.trim()}
+            disabled={completeMutation.isPending || (!notReceived && !whatHappened.trim())}
             className="inline-flex items-center gap-2 px-5 py-2 text-sm font-semibold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 shadow-sm transition-colors min-h-[44px]"
           >
             {completeMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}

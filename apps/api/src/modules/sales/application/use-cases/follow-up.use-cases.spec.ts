@@ -60,6 +60,7 @@ function setup(rec = record()) {
     getPrimaryContactPersonId: jest.fn().mockResolvedValue(4),
     isActiveContactOfCompany: jest.fn().mockResolvedValue(true),
     isEligibleAssignee: jest.fn().mockResolvedValue(true),
+    resolveCallNotReceivedReason: jest.fn().mockResolvedValue({ label: 'Busy' }),
   };
   const activity = { logForFollowUp: jest.fn().mockResolvedValue({ communication_id: 900 }) };
   const status = {
@@ -308,8 +309,29 @@ describe('FollowUpUseCases.edit', () => {
 });
 
 describe('FollowUpUseCases.complete', () => {
-  const done = { outcome: 'Interested', what_happened: 'Liked the demo', call_duration_seconds: 208, next_step: { action: 'none' as const } };
+  const done = { outcome: 'Interested', what_happened: 'Liked the demo', call_status: 'Received', call_duration_seconds: 208, next_step: { action: 'none' as const } };
   const call = () => record({ type: 'Call' });
+
+  it('needs the call status for a call, and saves it with the conversation', async () => {
+    const err = await setup(call()).uc.complete(100, { ...done, call_status: null }, owner, NOW).catch((e) => e);
+    expect(err.errors.map((e: { field: string }) => e.field)).toEqual(['call_status']);
+    const ok = setup(call());
+    await ok.uc.complete(100, done, owner, NOW);
+    expect(ok.activity.logForFollowUp).toHaveBeenCalledWith(expect.objectContaining({ call_status: 'Received' }), owner, NOW, { tx: true });
+  });
+
+  it('completes a call nobody picked up with only a reason', async () => {
+    const { uc, activity } = setup(call());
+    await uc.complete(100, { call_status: 'Not received', not_received_reason: 'busy', next_step: { action: 'none' } }, owner, NOW);
+    expect(activity.logForFollowUp).toHaveBeenCalledWith(
+      expect.objectContaining({ call_status: 'Not received', not_received_reason: 'Busy', outcome: 'No response', what_discussed: 'Call not received: Busy', call_duration_seconds: null }),
+      owner,
+      NOW,
+      { tx: true },
+    );
+    const err = await setup(call()).uc.complete(100, { call_status: 'Not received', next_step: { action: 'none' } }, owner, NOW).catch((e) => e);
+    expect(err.errors.map((e: { field: string }) => e.field)).toEqual(['not_received_reason']);
+  });
 
   it('saves the conversation and completes the follow-up in one transaction', async () => {
     const { uc, uow, activity, repo } = setup(call());
@@ -322,7 +344,7 @@ describe('FollowUpUseCases.complete', () => {
 
   it('needs the outcome, what happened and a next step', async () => {
     const { uc, repo } = setup(call());
-    const err = await uc.complete(100, { call_duration_seconds: 60 }, owner, NOW).catch((e) => e);
+    const err = await uc.complete(100, { call_status: 'Received', call_duration_seconds: 60 }, owner, NOW).catch((e) => e);
     expect(err.errors.map((e: { field: string }) => e.field)).toEqual(['outcome', 'what_happened', 'next_step.action']);
     expect(repo.complete).not.toHaveBeenCalled();
   });
@@ -330,7 +352,7 @@ describe('FollowUpUseCases.complete', () => {
   it('needs the call length for a call, and refuses it for any other channel', async () => {
     const a = await setup(call()).uc.complete(100, { ...done, call_duration_seconds: null }, owner, NOW).catch((e) => e);
     expect(a.errors.map((e: { field: string }) => e.field)).toContain('call_duration_seconds');
-    const b = await setup().uc.complete(100, done, owner, NOW).catch((e) => e);
+    const b = await setup().uc.complete(100, { ...done, call_status: null }, owner, NOW).catch((e) => e);
     expect(b.errors.map((e: { field: string }) => e.field)).toContain('call_duration_seconds');
     const c = await setup(call()).uc.complete(100, { ...done, call_duration_seconds: 86400 }, owner, NOW).catch((e) => e);
     expect(c.errors.map((e: { field: string }) => e.field)).toContain('call_duration_seconds');

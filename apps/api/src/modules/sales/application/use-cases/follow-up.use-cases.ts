@@ -38,6 +38,7 @@ import {
   validateSchedule,
 } from '../../domain/services/follow-up-validator.service';
 import { cleanText } from '../../domain/services/sales-normalization.service';
+import { CALL_STATUSES } from '../../domain/services/activity-validator.service';
 import { resolveAssignee } from '../../domain/services/lead-workflow.service';
 import { MSG } from '../../domain/services/company-validator.service';
 
@@ -107,7 +108,11 @@ export interface CompleteInput {
   done_on?: Date | null;
   outcome?: string | null;
   what_happened?: string | null;
-  /** A call follow-up: how long the call lasted, in seconds. */
+  /** A call follow-up: was the call "Received" or "Not received". */
+  call_status?: string | null;
+  /** A call that was not received: why (from the Admin's list). */
+  not_received_reason?: string | null;
+  /** A received call follow-up: how long the call lasted, in seconds. */
   call_duration_seconds?: number | null;
   next_step?: NextStepInput | null;
 }
@@ -325,17 +330,39 @@ export class FollowUpUseCases {
     const rec = await this.mustAct(id, 'complete', actor, now);
     const next = input.next_step ?? {};
     const action = (next.action ?? null) as NextStepAction | null;
+    const callStatus = cleanText(input.call_status);
+    const notReceived = rec.type === 'Call' && callStatus === 'Not received';
+    const reason = cleanText(input.not_received_reason);
+    const reasonHit = notReceived && reason ? await this.work.resolveCallNotReceivedReason(reason) : null;
+    const note = cleanText(input.what_happened);
     const fields = {
       done_on: input.done_on ?? now,
-      outcome: cleanText(input.outcome),
-      what_happened: cleanText(input.what_happened),
+      // A call nobody picked up has no conversation: the same text and outcome as "Log call" are saved.
+      outcome: notReceived ? 'No response' : cleanText(input.outcome),
+      what_happened: notReceived ? `Call not received: ${reasonHit?.label ?? reason ?? ''}${note ? `. ${note}` : ''}` : note,
       next_step: action,
     };
     const errors = validateComplete(fields, rec.created_at, now);
-    // A call follow-up records how long the call lasted; other channels have no call length
-    const duration = input.call_duration_seconds ?? null;
+
+    // Every call must say whether it was received, so the calling reports add up
     if (rec.type === 'Call') {
-      if (duration === null) errors.push({ field: 'call_duration_seconds', message: 'Please enter how long the call lasted, for example 3 min 28 sec.' });
+      if (!callStatus) errors.push({ field: 'call_status', message: 'Was the call received or not?' });
+      else if (!(CALL_STATUSES as readonly string[]).includes(callStatus)) {
+        errors.push({ field: 'call_status', message: `Choose one of: ${CALL_STATUSES.join(', ')}.` });
+      }
+    } else if (callStatus) {
+      errors.push({ field: 'call_status', message: 'Only a call can be marked received or not received.' });
+    }
+    if (notReceived && !reason) errors.push({ field: 'not_received_reason', message: MSG.required });
+    else if (notReceived && !reasonHit) errors.push({ field: 'not_received_reason', message: 'Choose a reason from the list.' });
+    else if (!notReceived && reason) errors.push({ field: 'not_received_reason', message: 'A reason is only for a call that was not received.' });
+
+    // A received call records how long it lasted; nothing else has a call length
+    const duration = input.call_duration_seconds ?? null;
+    if (notReceived) {
+      if (duration !== null) errors.push({ field: 'call_duration_seconds', message: 'The call length is only for a call that was received.' });
+    } else if (rec.type === 'Call') {
+      if (duration === null)errors.push({ field: 'call_duration_seconds', message: 'Please enter how long the call lasted, for example 3 min 28 sec.' });
       else if (!Number.isInteger(duration) || duration < 1 || duration >= 86400) errors.push({ field: 'call_duration_seconds', message: 'Enter how long the call lasted, for example 3 min 28 sec (up to 23 h 59 min).' });
     } else if (duration !== null) {
       errors.push({ field: 'call_duration_seconds', message: 'The call length is only for a call.' });
@@ -376,7 +403,9 @@ export class FollowUpUseCases {
           communication_date: fields.done_on,
           what_discussed: fields.what_happened as string,
           outcome: fields.outcome as string,
-          call_duration_seconds: rec.type === 'Call' ? duration : null,
+          call_status: rec.type === 'Call' ? callStatus : null,
+          not_received_reason: notReceived ? (reasonHit?.label ?? null) : null,
+          call_duration_seconds: rec.type === 'Call' && !notReceived ? duration : null,
         },
         actor,
         now,
